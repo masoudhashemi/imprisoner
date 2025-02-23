@@ -1,0 +1,606 @@
+starting_states:
+  - prison_cell
+  - interrogation_room
+  - work_duty
+  - solitary_confinement
+  - waste_disposal
+
+states:
+  prison_cell:
+    description: "You wake up in a cold, damp prison cell. Your stomach growls."
+    actions:
+      search_hay:
+        description: "Search the hay bed for hidden objects."
+        probabilities:
+          find_needle: 0.3
+          caught_by_guard: 0.7
+      check_door:
+        description: "Examine the cell door."
+        next_state: cell_door
+      listen_to_guards:
+        description: "Listen to the guards talking outside."
+        probabilities:
+          learn_shift_change: 0.4
+          caught_by_guard: 0.6
+      talk_to_prisoner:
+        description: "Talk to the old prisoner next to you."
+        probabilities:
+          prisoner_friendly: 0.3
+          prisoner_hostile: 0.7
+      fake_illness:
+        description: "Pretend to be sick and call for a medic."
+        probabilities:
+          taken_to_infirmary: 0.3
+          ignored_by_guards: 0.7
+
+  prisoner_friendly:
+    description: "The prisoner seems friendly and offers advice."
+    actions:
+      share_information:
+        description: "Tell him about your escape plan."
+        probabilities:
+          prisoner_loyal: 0.7
+          prisoner_snitch: 0.3
+      ask_for_help:
+        description: "Ask him if he knows a way out."
+        probabilities:
+          learn_secret_passage: 0.5
+          useless_information: 0.5
+
+  prisoner_hostile:
+    description: "The prisoner glares at you suspiciously."
+    actions:
+      stay_silent:
+        description: "Ignore him and avoid trouble."
+        probabilities:
+          prison_cell: 0.6
+          prisoner_snitch: 0.4
+      act_tough:
+        description: "Try to intimidate him."
+        probabilities:
+          gain_respect: 0.5
+          provoke_fight: 0.5
+
+  prisoner_snitch:
+    description: "The prisoner reports your escape plan. Guards enter your cell!"
+    actions:
+      deny_everything:
+        description: "Try to convince the guards it's a lie."
+        probabilities:
+          guards_believe: 0.3
+          interrogation_room: 0.7
+      attack_snitch:
+        description: "Try to take him down before he does more damage."
+        probabilities:
+          win_fight: 0.6
+          lose_fight: 0.4
+
+  prisoner_loyal:
+    description: "The prisoner nods and promises to help you escape."
+    actions:
+      plan_escape_together:
+        description: "Work with him on a strategy."
+        probabilities:
+          successful_escape: 0.5
+          betrayal_at_exit: 0.5
+
+  betrayal_at_exit:
+    description: "Your 'friend' stabs you in the back at the last moment."
+    terminal: True
+
+  find_needle:
+    description: "You find a sharp needle hidden in the hay."
+    actions:
+      use_needle_wall:
+        description: "Use the needle to complete an inscription on the wall."
+        probabilities:
+          magic_portal: 0.3
+          caught_by_guard: 0.7
+      use_needle_lock:
+        description: "Try to pick the cell lock with the needle."
+        probabilities:
+          unlock_success: 0.5
+          caught_by_guard: 0.5
+      hide_needle:
+        description: "Save the needle for later."
+        next_state: prison_cell
+
+  magic_portal:
+    description: "A glowing portal appears on the wall."
+    actions:
+      enter_portal:
+        description: "Step into the portal to escape."
+        probabilities:
+          escape_success: 0.2
+          portal_trap: 0.8
+      hesitate:
+        description: "Wait and examine the portal before entering."
+        probabilities:
+          enter_portal: 0.3
+          portal_closes: 0.7
+
+  taken_to_infirmary:
+    description: "The guards take you to the prison infirmary."
+    actions:
+      steal_medicine:
+        description: "Steal some painkillers for later."
+        probabilities:
+          obtained_medicine: 0.3
+          caught_stealing: 0.7
+      observe_medical_staff:
+        description: "Watch how the doctors interact with guards."
+        probabilities:
+          learned_security_pattern: 0.4
+          caught_staring: 0.6
+      try_to_escape:
+        description: "Make a break for it."
+        probabilities:
+          escape_success: 0.2
+          caught_by_guard: 0.8
+
+  obtained_medicine:
+    description: "You now have painkillers in your possession."
+    actions:
+      bribe_guard_with_medicine:
+        description: "Offer the guard medicine in exchange for help."
+        probabilities:
+          guard_accepts: 0.6
+          guard_reports_you: 0.4
+      keep_medicine:
+        description: "Hold onto the medicine for later."
+        next_state: prison_cell
+
+  hallway:
+    description: "You are in a dimly lit hallway."
+    actions:
+      sneak_to_guardroom:
+        description: "Sneak into the guardroom."
+        probabilities:
+          find_disguise: 0.3
+          caught_by_guard: 0.7
+      enter_laundry:
+        description: "Try to enter the laundry room."
+        probabilities:
+          laundry_room: 0.6
+          caught_by_guard: 0.4
+      search_vent:
+        description: "Look for an air duct to crawl through."
+        probabilities:
+          caught_in_vent: 0.6
+          air_duct_success: 0.4
+
+  find_disguise:
+    description: "You find a prison guard uniform and put it on."
+    actions:
+      walk_out_confidently:
+        description: "Walk out like you belong there."
+        probabilities:
+          escape_success: 0.2
+          guard_suspects_you: 0.8
+
+  tunnel_path:
+    description: "You crawl through a hidden tunnel. It's dark and damp."
+    actions:
+      dig_forward:
+        description: "Dig further into the tunnel."
+        conditions:
+          requires: shovel
+        probabilities:
+          outer_wall: 0.4
+          tunnel_collapse: 0.6
+      move_slowly:
+        description: "Move carefully through existing tunnel."
+        probabilities:
+          caught_by_guard: 0.8
+          tunnel_collapse: 0.2
+
+  outer_wall:
+    description: "You reach the prison's outer wall."
+    actions:
+      climb_wall:
+        description: "Try to climb over using a rope."
+        conditions:
+          requires: rope
+        probabilities:
+          escape_success: 0.2
+          fall_and_injure: 0.8
+      run_through_gate:
+        description: "Attempt to sprint through the main gate."
+        probabilities:
+          escape_success: 0.1
+          shot_by_guard: 0.9
+
+  escape_success:
+    description: "You successfully escape the prison!"
+    terminal: True
+
+  obtain_lockpick:
+    description: "You find a piece of metal that could be fashioned into a lockpick."
+    actions:
+      craft_lockpick:
+        description: "Bend it into a usable lockpick."
+        next_state: lockpick_ready
+      hide_it:
+        description: "Hide it in your sock for later use."
+        next_state: prison_cell
+
+  lockpick_ready:
+    description: "You now have a makeshift lockpick."
+    actions:
+      pick_cell_lock:
+        description: "Attempt to pick your cell lock."
+        conditions:
+          requires: lockpick
+        probabilities:
+          unlock_success: 0.6
+          lockpick_breaks: 0.4
+
+  lockpick_breaks:
+    description: "Your lockpick snaps! You'll need to find another way."
+    next_state: prison_cell
+
+  waste_disposal:
+    description: "You wake up in the waste disposal area after being drugged. The air is foul."
+    actions:
+      crawl_out:
+        description: "Crawl through the garbage tunnel."
+        probabilities:
+          find_exit: 0.3
+          get_stuck: 0.7
+      search_trash:
+        description: "Look for anything useful in the waste."
+        probabilities:
+          find_tool: 0.3
+          find_nothing: 0.7
+
+  find_exit:
+    description: "You manage to crawl through the waste tunnel and reach the outer yard."
+    actions:
+      sneak_to_wall:
+        description: "Move stealthily towards the prison wall."
+        probabilities:
+          outer_wall: 0.3
+          caught_by_guard: 0.7
+      hide_in_shadows:
+        description: "Wait until nightfall before making a move."
+        probabilities:
+          safer_escape: 0.7
+          guards_notice: 0.3
+
+  find_tool:
+    description: "You find a small metal shard that might be useful."
+    actions:
+      keep_tool:
+        description: "Hide it in your clothes for later use."
+        grants: lockpick
+        next_state: waste_disposal
+
+  get_stuck:
+    description: "You get stuck in the trash chute and start suffocating."
+    terminal: True
+
+  find_nothing:
+    description: "You find nothing useful."
+    next_state: waste_disposal
+
+  guards_find_you:
+    description: "Guards hear your cries and pull you out of the trash."
+    actions:
+      fight_back:
+        description: "Try to overpower them."
+        probabilities:
+          overpower_guard: 0.3
+          fail_fight: 0.7
+      cooperate:
+        description: "Comply with the guards and hope for mercy."
+        probabilities:
+          taken_to_interrogation: 0.5
+          thrown_in_solitary: 0.5
+
+  ignored:
+    description: "No one hears you. You're still stuck in the waste."
+    next_state: waste_disposal
+
+  work_duty:
+    description: "You are assigned to work outside the prison walls. Guards are watching closely."
+    actions:
+      observe_guards:
+        description: "Watch the guards closely to find weaknesses in their patrols."
+        probabilities:
+          learned_shift_pattern: 0.4
+          caught_staring: 0.6
+      smuggle_tool:
+        description: "Try to steal a shovel from the worksite."
+        probabilities:
+          obtain_shovel: 0.3
+          get_caught: 0.7
+      make_escape:
+        description: "Try to escape immediately."
+        probabilities:
+          escape_success: 0.2
+          caught_by_guard: 0.8
+
+  learned_shift_pattern:
+    description: "You notice that some guards are lax during shift changes."
+    actions:
+      wait_for_night:
+        description: "Use this knowledge to plan an escape attempt at night."
+        probabilities:
+          successful_escape: 0.2
+          caught_by_guard: 0.8
+      spread_rumor:
+        description: "Start a rumor among prisoners to cause chaos."
+        probabilities:
+          prison_riot: 0.4
+          prisoner_snitches: 0.6
+
+  prison_riot:
+    description: "A riot breaks out! Guards rush to control it."
+    actions:
+      use_riot_as_cover:
+        description: "Use the chaos to escape."
+        probabilities:
+          escape_success: 0.5
+          caught_in_crossfire: 0.5
+      fight_guards:
+        description: "Join the prisoners fighting guards."
+        probabilities:
+          win_fight: 0.5
+          beaten_by_guards: 0.5
+
+  slip_past_guards:
+    description: "You move silently when the guards change shifts."
+    actions:
+      hide_in_vent:
+        description: "Use a vent to move unseen."
+        probabilities:
+          tunnel_path: 0.3
+          caught_in_vent: 0.7
+      blend_with_workers:
+        description: "Pretend to be a prison worker."
+        probabilities:
+          work_duty: 0.3
+          caught_by_guard: 0.7
+
+  caught_by_guard:
+    description: "A guard catches you attempting to pick the lock!"
+    actions:
+      bribe_guard:
+        description: "Try to bribe the guard to let you go."
+        probabilities:
+          guard_accepts: 0.4
+          guard_reports_you: 0.6
+      attack_guard:
+        description: "Attempt to fight your way out."
+        probabilities:
+          overpower_guard: 0.3
+          beaten_by_guard: 0.7
+      surrender:
+        description: "Give up and let the guard decide your fate."
+        probabilities:
+          taken_to_interrogation: 0.5
+          thrown_in_solitary: 0.5
+
+  guard_accepts:
+    description: "The guard accepts your bribe and walks away."
+    next_state: prison_cell
+
+  guard_reports_you:
+    description: "The guard reports you to the warden. You are severely punished."
+    next_state: solitary_confinement
+
+  overpower_guard:
+    description: "You successfully knock out the guard and steal his keys."
+    actions:
+      unlock_door:
+        description: "Use the stolen key to escape."
+        probabilities:
+          hallway: 0.4
+          caught_by_guard: 0.6
+
+  beaten_by_guard:
+    description: "The guard overpowers you and you are beaten."
+    next_state: solitary_confinement
+
+  taken_to_interrogation:
+    description: "You are dragged to the interrogation room for questioning."
+    next_state: interrogation_room
+
+  thrown_in_solitary:
+    description: "The guards throw you into solitary confinement as punishment."
+    next_state: solitary_confinement
+
+  learn_shift_change:
+    description: "You overheard the guards discussing their shift timings. This information could be useful."
+    actions:
+      wait_for_patrol_gap:
+        description: "Use the knowledge to time an escape."
+        probabilities:
+          slip_past_guards: 0.6
+          caught_by_guard: 0.4
+      share_with_prisoner:
+        description: "Tell another prisoner about the guards' schedule."
+        probabilities:
+          prisoner_helps: 0.5
+          prisoner_snitches: 0.5
+
+  prisoner_helps:
+    description: "The prisoner agrees to help you escape later."
+    actions:
+      trust_prisoner:
+        description: "Follow the prisoner's plan."
+        probabilities:
+          prisoner_loyal: 0.4
+          prisoner_snitch: 0.6
+
+  prisoner_snitches:
+    description: "The prisoner betrays you to the guards!"
+    next_state: prisoner_snitch
+
+  caught_in_crossfire:
+    description: "During the chaos, you're hit by a stray bullet!"
+    terminal: True
+
+  tunnel_collapse:
+    description: "The tunnel suddenly collapses around you, crushing you beneath the rubble."
+    terminal: True
+
+  fall_and_injure:
+    description: "You lose your grip and fall hard, breaking both legs."
+    actions:
+      call_for_help:
+        description: "Cry out for medical assistance."
+        probabilities:
+          guards_find_you: 0.8
+          ignored: 0.2
+      crawl_to_safety:
+        description: "Try to drag yourself away despite the pain."
+        probabilities:
+          caught_by_guard: 0.9
+          escape_success: 0.1
+
+  portal_closes:
+    description: "The portal vanishes before your eyes, leaving only solid wall."
+    next_state: prison_cell
+
+  guards_notice:
+    description: "Your movement catches a guard's attention in the darkness."
+    actions:
+      freeze:
+        description: "Stay perfectly still and hope they look away."
+        probabilities:
+          guard_moves_on: 0.4
+          caught_by_guard: 0.6
+      run:
+        description: "Make a desperate sprint for freedom."
+        probabilities:
+          escape_success: 0.2
+          shot_by_guard: 0.8
+
+  shot_by_guard:
+    description: "A guard's bullet finds its mark. Your escape attempt ends here."
+    terminal: True
+
+  guard_moves_on:
+    description: "The guard shrugs and continues their patrol."
+    next_state: outer_wall
+
+  fail_fight:
+    description: "The guards easily overpower you. You're badly beaten."
+    next_state: solitary_confinement
+
+  caught_in_vent:
+    description: "You're stuck in the ventilation system! The metal is too tight."
+    actions:
+      call_for_help:
+        description: "Bang on the vent and yell for help."
+        probabilities:
+          guards_rescue: 0.7
+          slow_suffocation: 0.3
+      wiggle_forward:
+        description: "Try to squeeze through the narrow space."
+        probabilities:
+          escape_vent: 0.4
+          get_more_stuck: 0.6
+
+  slow_suffocation:
+    description: "The air grows thin. No one can hear your weakening cries."
+    terminal: True
+
+  guards_rescue:
+    description: "Guards cut you out of the vent. They're not happy."
+    next_state: solitary_confinement
+
+  escape_vent:
+    description: "You barely manage to squeeze through to a wider section."
+    actions:
+      continue_forward:
+        description: "Keep moving through the vent system."
+        probabilities:
+          hallway: 0.4
+          caught_in_vent: 0.6
+
+  get_more_stuck:
+    description: "Your struggling only wedges you in tighter. The air is getting thin..."
+    terminal: True
+
+  safer_escape:
+    description: "Under cover of darkness, you find your chance."
+    actions:
+      make_run:
+        description: "Make your carefully timed escape attempt."
+        probabilities:
+          escape_success: 0.3
+          caught_by_guard: 0.7
+
+  portal_trap:
+    description: "The portal was a trap! You're teleported into a maximum security cell."
+    terminal: True
+
+  caught_stealing:
+    description: "A nurse catches you trying to steal medicine. Guards are called."
+    next_state: solitary_confinement
+
+  caught_staring:
+    description: "Your suspicious behavior attracts unwanted attention."
+    next_state: caught_by_guard
+
+  laundry_room:
+    description: "You're in the prison laundry room. Sheets and clothes are everywhere."
+    actions:
+      make_rope:
+        description: "Try to make a rope from bedsheets."
+        conditions:
+          requires: scissors
+        probabilities:
+          obtain_rope: 0.7
+          caught_by_guard: 0.3
+      search_area:
+        description: "Look around for useful items."
+        probabilities:
+          find_scissors: 0.4
+          find_nothing: 0.6
+
+  obtain_rope:
+    description: "You've successfully made a rope from bedsheets!"
+    actions:
+      hide_rope:
+        description: "Hide the rope for later use."
+        grants: rope
+        next_state: prison_cell
+
+  find_scissors:
+    description: "You find a pair of scissors hidden behind some shelves."
+    actions:
+      take_scissors:
+        description: "Carefully pocket the scissors."
+        grants: scissors
+        next_state: laundry_room
+
+  obtain_shovel:
+    description: "You managed to get your hands on a small shovel!"
+    actions:
+      hide_shovel:
+        description: "Carefully hide the shovel in your clothes."
+        grants: shovel
+        next_state: work_duty
+
+  cell_door:
+    description: "You stand before your cell door, considering your options."
+    actions:
+      pick_lock:
+        description: "Try to pick the lock."
+        conditions:
+          requires: lockpick
+        probabilities:
+          unlock_success: 0.6
+          lockpick_breaks: 0.4
+      wait_for_guard:
+        description: "Wait for guard patrol."
+        probabilities:
+          caught_by_guard: 0.8
+          opportunity_passes: 0.2
+
+  opportunity_passes:
+    description: "The moment passes without any chance to act."
+    next_state: prison_cell
