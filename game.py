@@ -1,3 +1,5 @@
+import argparse
+
 import gymnasium as gym
 
 from imprisoned_env import ImprisonedEnv
@@ -43,6 +45,25 @@ def play_game():
         print("💀 You failed to escape. Better luck next time!")
 
 
+def play_with_agent():
+    """Play the game with assistance from a trained Q-learning agent."""
+    try:
+        from qlearning_agent import play_interactive_game
+
+        play_interactive_game()
+    except ImportError:
+        print("Error: Q-learning agent module not found. Make sure qlearning_agent.py is in the same directory.")
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Play the Imprisoned text adventure game")
+    parser.add_argument("--agent", action="store_true", help="Play with AI agent assistance")
+
+    args = parser.parse_args()
+
     print("\n=== Welcome to *Imprisoned* ===")
-    play_game()
+
+    if args.agent:
+        play_with_agent()
+    else:
+        play_game()
