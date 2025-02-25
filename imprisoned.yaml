@@ -4,6 +4,7 @@ starting_states:
 - work_duty
 - solitary_confinement
 - waste_disposal
+- workshop
 states:
   prison_cell:
     description: You wake up in a cold, damp prison cell. Your stomach growls.
@@ -31,6 +32,11 @@ states:
         probabilities:
           taken_to_infirmary: 0.3
           ignored_by_guards: 0.7
+      examine_cell_carefully:
+        description: Thoroughly search your cell for anything useful.
+        probabilities:
+          find_electronic_components: 0.2
+          find_nothing: 0.8
   prisoner_friendly:
     description: The prisoner seems friendly and offers advice.
     actions:
@@ -128,6 +134,11 @@ states:
         probabilities:
           escape_success: 0.2
           caught_by_guard: 0.8
+      check_supply_cabinet:
+        description: Look inside a medical supply cabinet.
+        probabilities:
+          find_electronic_components: 0.4
+          caught_stealing: 0.6
   obtained_medicine:
     description: You now have painkillers in your possession.
     actions:
@@ -157,6 +168,16 @@ states:
         probabilities:
           caught_in_vent: 0.6
           air_duct_success: 0.4
+      check_security_door:
+        description: Investigate a heavy security door at the end of the hall.
+        probabilities:
+          security_door: 0.9
+          caught_by_guard: 0.1
+      enter_workshop:
+        description: Try to enter the prison workshop.
+        probabilities:
+          workshop: 0.7
+          caught_by_guard: 0.3
   find_disguise:
     description: You find a prison guard uniform and put it on.
     actions:
@@ -383,9 +404,14 @@ states:
         probabilities:
           fence_weakened: 0.7
           caught_by_guard: 0.3
-
+      move_to_yard:
+        description: Move to a different section of the yard.
+        probabilities:
+          outer_yard: 0.5
+          caught_by_guard: 0.5
   escape_opportunity:
-    description: You spot a potential opening in the security, but it will require careful timing.
+    description: You spot a potential opening in the security, but it will require
+      careful timing.
     actions:
       run_immediately:
         description: Make a desperate sprint for freedom now.
@@ -402,7 +428,6 @@ states:
         probabilities:
           better_opportunity: 0.5
           work_duty: 0.5
-
   distraction_works:
     description: Your distraction has drawn the guards' attention away.
     actions:
@@ -416,7 +441,6 @@ states:
         probabilities:
           coordinated_escape: 0.6
           caught_by_guard: 0.4
-
   escape_chase:
     description: You're running for freedom with guards in pursuit!
     actions:
@@ -439,7 +463,6 @@ states:
         probabilities:
           escape_success: 0.8
           caught_by_guard: 0.2
-
   fence_weakened:
     description: You've created a weak spot in the perimeter fence that could be exploited.
     actions:
@@ -457,7 +480,6 @@ states:
         probabilities:
           prisoner_helps: 0.5
           prisoner_snitches: 0.5
-
   contraband_hidden:
     description: You've successfully hidden contraband that you can retrieve later.
     actions:
@@ -474,18 +496,181 @@ states:
         grants: hidden_stash_location
         next_state: work_duty
   learned_shift_pattern:
-    description: You notice that some guards are lax during shift changes.
+    description: You've observed the guards' patrol patterns and identified weaknesses.
     actions:
-      wait_for_night:
-        description: Use this knowledge to plan an escape attempt at night.
+      plan_escape_route:
+        description: Use this knowledge to plan your escape.
+        grants: patrol_knowledge
+        next_state: prison_cell
+      exploit_immediately:
+        description: Try to take advantage of the pattern right now.
         probabilities:
-          successful_escape: 0.2
-          caught_by_guard: 0.8
-      spread_rumor:
-        description: Start a rumor among prisoners to cause chaos.
+          escape_opportunity: 0.6
+          caught_by_guard: 0.4
+  door_damaged:
+    description: You've damaged the door, but it's still not open.
+    actions:
+      continue_forcing:
+        description: Keep trying to force it open.
         probabilities:
-          prison_riot: 0.4
-          prisoner_snitches: 0.6
+          door_unlocked: 0.3
+          door_alarm: 0.7
+      look_for_another_way:
+        description: Give up on this door and find another route.
+        next_state: hallway
+  obtain_screwdriver:
+    description: You've acquired a crude screwdriver.
+    actions:
+      hide_screwdriver:
+        description: Hide the screwdriver for later use.
+        grants: screwdriver
+        next_state: prison_cell
+      use_immediately:
+        description: Try to use the screwdriver right away.
+        probabilities:
+          loosen_vent: 0.6
+          caught_with_contraband: 0.4
+  discover_secret:
+    description: Following the prisoner leads you to discover a hidden area.
+    actions:
+      explore_secret_area:
+        description: Investigate the hidden area.
+        probabilities:
+          find_contraband: 0.7
+          caught_by_guard: 0.3
+      mark_location:
+        description: Remember this spot for later.
+        grants: secret_knowledge
+        next_state: prison_cell
+  prisoner_refuses:
+    description: The prisoner refuses to give you anything.
+    actions:
+      threaten_again:
+        description: Increase your threats to force compliance.
+        probabilities:
+          prisoner_scared: 0.5
+          prisoner_attacks: 0.5
+      back_off:
+        description: Leave them alone before things escalate.
+        next_state: prison_cell
+  prisoner_scared:
+    description: The prisoner is terrified and willing to do anything.
+    actions:
+      demand_contraband:
+        description: Force them to give you something valuable.
+        probabilities:
+          obtain_contraband: 0.7
+          prisoner_snitches: 0.3
+      demand_information:
+        description: Make them tell you about prison weaknesses.
+        probabilities:
+          learn_secret_passage: 0.6
+          useless_information: 0.4
+  find_contraband:
+    description: You discover a stash of contraband items.
+    actions:
+      take_everything:
+        description: Grab all the contraband you can carry.
+        grants: contraband
+        probabilities:
+          return_to_cell: 0.6
+          caught_with_contraband: 0.4
+      take_selectively:
+        description: Carefully choose the most useful items.
+        probabilities:
+          obtain_lockpick: 0.3
+          obtain_screwdriver: 0.3
+          obtain_wire_cutters: 0.4
+  followed_by_bullies:
+    description: A group of prison bullies follows you, looking for trouble.
+    actions:
+      confront_them:
+        description: Turn and face them before they attack.
+        probabilities:
+          intimidate_bullies: 0.4
+          outnumbered_fight: 0.6
+      seek_protection:
+        description: Try to find guards or a safe area.
+        probabilities:
+          guards_intervene: 0.7
+          cornered_by_bullies: 0.3
+  intimidate_bullies:
+    description: You manage to scare off the bullies with your confidence.
+    actions:
+      establish_reputation:
+        description: Use this moment to build your prison reputation.
+        next_state: gain_respect
+      return_to_cell:
+        description: Walk away while you're ahead.
+        next_state: prison_cell
+  outnumbered_fight:
+    description: You're fighting multiple opponents at once!
+    actions:
+      fight_defensively:
+        description: Focus on protecting yourself.
+        probabilities:
+          escape_fight: 0.5
+          lose_fight: 0.5
+      go_all_out:
+        description: Attack aggressively to end the fight quickly.
+        probabilities:
+          win_fight: 0.3
+          lose_fight: 0.7
+  cornered_by_bullies:
+    description: The bullies have you trapped in a corner with no escape.
+    actions:
+      surrender_possessions:
+        description: Give them what they want to avoid a beating.
+        next_state: prison_cell
+      fight_desperately:
+        description: Fight with everything you have.
+        probabilities:
+          bully_surprise_victory: 0.3
+          bully_beaten_badly: 0.7
+  bully_surprise_victory:
+    description: Against all odds, you've defeated the bullies!
+    actions:
+      take_their_stuff:
+        description: Search them for useful items.
+        probabilities:
+          find_contraband: 0.8
+          guards_arrive: 0.2
+      leave_quickly:
+        description: Get away before guards arrive.
+        next_state: prison_cell
+  bully_beaten_badly:
+    description: The bullies have beaten you severely.
+    actions:
+      play_dead:
+        description: Pretend to be unconscious so they'll leave.
+        next_state: prison_cell
+      call_for_help:
+        description: Yell for medical assistance.
+        next_state: taken_to_infirmary
+  bypass_security:
+    description: You've successfully bypassed the security system using the keycard.
+    actions:
+      escape_success:
+        description: Use the bypass to escape.
+        probabilities:
+          escape_success: 0.8
+          caught_by_guard: 0.2
+      sabotage_system:
+        description: Sabotage the system to prevent future use.
+        next_state: prison_cell
+  hostile_encounter:
+    description: You've encountered someone who recognizes you as an escaped prisoner.
+    actions:
+      flee_immediately:
+        description: Run away before they can report you.
+        probabilities:
+          escape_chase: 0.7
+          recaptured: 0.3
+      try_to_convince:
+        description: Attempt to convince them to help you instead.
+        probabilities:
+          friendly_stranger: 0.3
+          recaptured: 0.7
   prison_riot:
     description: A riot breaks out! Guards rush to control it.
     actions:
@@ -590,16 +775,6 @@ states:
       cooperate_falsely:
         description: Pretend to cooperate but give misleading information.
         next_state: interrogation_room
-  thrown_in_solitary:
-    description: The guards throw you into solitary confinement as punishment.
-    next_state: solitary_confinement
-    actions:
-      meditate:
-        description: Use the time to clear your mind.
-        next_state: solitary_confinement
-      examine_cell:
-        description: Look for weaknesses in your cell.
-        next_state: solitary_confinement
   learn_shift_change:
     description: You overheard the guards discussing their shift timings. This information
       could be useful.
@@ -614,373 +789,1020 @@ states:
         probabilities:
           prisoner_helps: 0.5
           prisoner_snitches: 0.5
-  prisoner_helps:
-    description: The prisoner agrees to help you escape later.
+  workshop:
+    description: You've entered the prison workshop.
     actions:
-      trust_prisoner:
-        description: Follow the prisoner's plan.
+      search_workshop:
+        description: Look for useful tools or materials.
         probabilities:
-          prisoner_loyal: 0.4
-          prisoner_snitch: 0.6
-  prisoner_snitches:
-    description: The prisoner betrays you to the guards!
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: prisoner_snitch
-  caught_in_crossfire:
-    description: During the chaos, you're hit by a stray bullet!
-    terminal: true
-  tunnel_collapse:
-    description: The tunnel suddenly collapses around you, crushing you beneath the
-      rubble.
-    terminal: true
-  fall_and_injure:
-    description: You lose your grip and fall hard, breaking both legs.
-    actions:
-      call_for_help:
-        description: Cry out for medical assistance.
+          find_tool: 0.3
+          find_nothing: 0.7
+      sabotage_equipment:
+        description: Damage equipment to create a distraction.
         probabilities:
-          guards_find_you: 0.8
-          ignored: 0.2
-      crawl_to_safety:
-        description: Try to drag yourself away despite the pain.
-        probabilities:
-          caught_by_guard: 0.9
-          escape_success: 0.1
-  portal_closes:
-    description: The portal vanishes before your eyes, leaving only solid wall.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: prison_cell
-  guards_notice:
-    description: Your movement catches a guard's attention in the darkness.
-    actions:
-      freeze:
-        description: Stay perfectly still and hope they look away.
-        probabilities:
-          guard_moves_on: 0.4
-          caught_by_guard: 0.6
-      run:
-        description: Make a desperate sprint for freedom.
-        probabilities:
-          escape_success: 0.2
-          shot_by_guard: 0.8
-  shot_by_guard:
-    description: A guard's bullet finds its mark. Your escape attempt ends here.
-    terminal: true
-  guard_moves_on:
-    description: The guard shrugs and continues their patrol.
-    next_state: outer_wall
-    actions:
-      wait_for_clear:
-        description: Wait until they're completely gone.
-        next_state: outer_wall
-      follow_quietly:
-        description: Shadow the guard to learn their route.
-        probabilities:
-          learn_patrol_route: 0.6
+          create_distraction: 0.6
           caught_by_guard: 0.4
-  fail_fight:
-    description: The guards easily overpower you. You're badly beaten.
+      steal_tools:
+        description: Try to steal tools for later use.
+        probabilities:
+          obtain_tool: 0.5
+          caught_by_guard: 0.5
+  obtain_tool:
+    description: You've acquired a useful tool.
     actions:
-      continue:
-        description: Continue on your path.
-        next_state: solitary_confinement
-  caught_in_vent:
-    description: You're stuck in the ventilation system! The metal is too tight.
+      hide_tool:
+        description: Hide the tool for later use.
+        next_state: prison_cell
+      use_immediately:
+        description: Try to use the tool right away.
+        probabilities:
+          escape_opportunity: 0.4
+          caught_with_contraband: 0.6
+  obtain_shovel:
+    description: You've acquired a shovel.
+    actions:
+      hide_shovel:
+        description: Hide the shovel for later use.
+        grants: shovel
+        next_state: prison_cell
+      use_immediately:
+        description: Try to use the shovel right away.
+        probabilities:
+          dig_tunnel: 0.6
+          caught_with_contraband: 0.4
+  dig_tunnel:
+    description: You've started digging a tunnel.
+    actions:
+      continue_digging:
+        description: Keep digging deeper.
+        probabilities:
+          tunnel_path: 0.5
+          tunnel_collapse: 0.5
+      reinforce_walls:
+        description: Strengthen the tunnel walls to prevent collapse.
+        conditions:
+          requires: wooden_planks
+        probabilities:
+          safer_tunnel: 0.8
+          tunnel_collapse: 0.2
+  safer_tunnel:
+    description: The tunnel is now safer to crawl through.
+    actions:
+      continue_digging:
+        description: Keep digging deeper.
+        probabilities:
+          tunnel_path: 0.5
+          tunnel_collapse: 0.5
+      reinforce_walls:
+        description: Strengthen the tunnel walls to prevent collapse.
+        conditions:
+          requires: wooden_planks
+        probabilities:
+          safer_tunnel: 0.8
+          tunnel_collapse: 0.2
+  tunnel_collapse:
+    description: The tunnel collapses! You're trapped and suffocating.
     actions:
       call_for_help:
-        description: Bang on the vent and yell for help.
+        description: Bang on the walls and call for help.
         probabilities:
-          guards_rescue: 0.7
-          slow_suffocation: 0.3
-      wiggle_forward:
-        description: Try to squeeze through the narrow space.
+          guards_find_you: 0.6
+          slow_suffocation: 0.4
+      wiggle_desperately:
+        description: Struggle frantically to free yourself.
         probabilities:
-          escape_vent: 0.4
-          get_more_stuck: 0.6
+          find_exit: 0.3
+          slow_suffocation: 0.7
   slow_suffocation:
-    description: The air grows thin. No one can hear your weakening cries.
-    terminal: true
-  guards_rescue:
-    description: Guards cut you out of the vent. They're not happy.
+    description: You're slowly suffocating in the collapsed tunnel.
     actions:
-      continue:
-        description: Continue on your path.
-        next_state: solitary_confinement
-  escape_vent:
-    description: You barely manage to squeeze through to a wider section.
-    actions:
-      continue_forward:
-        description: Keep moving through the vent system.
+      call_for_help:
+        description: Bang on the walls and call for help.
         probabilities:
-          hallway: 0.4
-          caught_in_vent: 0.6
-  get_more_stuck:
-    description: Your struggling only wedges you in tighter. The air is getting thin...
-    terminal: true
-  safer_escape:
-    description: Under cover of darkness, you find your chance.
+          guards_find_you: 0.6
+          slow_suffocation: 0.4
+      wiggle_desperately:
+        description: Struggle frantically to free yourself.
+        probabilities:
+          find_exit: 0.3
+          slow_suffocation: 0.7
+  guards_intervene:
+    description: Guards intervene and help you escape the bullies.
     actions:
-      make_run:
-        description: Make your carefully timed escape attempt.
+      thank_guards:
+        description: Express your gratitude to the guards.
+        next_state: prison_cell
+      ask_for_favor:
+        description: Ask the guards for a favor in return.
+        probabilities:
+          guard_accepts: 0.6
+          guard_reports_you: 0.4
+  caught_in_crossfire:
+    description: You're caught in the crossfire of the riot.
+    actions:
+      hide_in_crowd:
+        description: Blend in with the chaos and try to escape.
         probabilities:
           escape_success: 0.3
           caught_by_guard: 0.7
-  portal_trap:
-    description: The portal was a trap! You're teleported into a maximum security
-      cell.
-    actions:
-      examine_new_cell:
-        description: Look around your new high-security surroundings.
-        next_state: maximum_security
-      attempt_magic:
-        description: Try to reopen the portal using what you learned.
+      fight_back:
+        description: Try to fight your way out.
         probabilities:
-          magic_portal: 0.2
-          energy_drained: 0.8
-  energy_drained:
-    description: Your attempt fails, leaving you completely exhausted.
+          win_fight: 0.5
+          lose_fight: 0.5
+  beaten_by_guards:
+    description: The guards have beaten you down.
+    next_state: solitary_confinement
     actions:
-      continue:
-        description: Continue on your path.
-        next_state: maximum_security
-  maximum_security:
-    description: You're in a special cell with advanced security. Escape seems impossible.
-    actions:
-      observe_routines:
-        description: Study the strict security protocols for weaknesses.
-        probabilities:
-          find_security_flaw: 0.3
-          waste_time: 0.7
-      fake_compliance:
-        description: Behave perfectly to earn privileges and trust.
-        probabilities:
-          earn_trustee_status: 0.5
-          remain_confined: 0.5
-  find_security_flaw:
-    description: You notice a small timing gap in the automated security systems.
-    actions:
-      exploit_flaw:
-        description: Wait for the right moment to exploit this weakness.
-        probabilities:
-          escape_success: 0.3
-          security_upgraded: 0.7
-      share_with_inmate:
-        description: Tell another prisoner about the flaw for help.
-        probabilities:
-          coordinated_escape: 0.4
-          prisoner_snitches: 0.6
-  security_upgraded:
-    description: Your attempt fails and security is enhanced. Escape is now even harder.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: maximum_security
-  earn_trustee_status:
-    description: Your good behavior earns you trustee status with more freedom.
-    actions:
-      maintain_facade:
-        description: Continue the act while looking for opportunities.
-        probabilities:
-          work_duty: 0.7
-          caught_planning: 0.3
-      attempt_escape:
-        description: Use your new privileges to make an escape attempt.
-        probabilities:
-          escape_success: 0.4
-          caught_by_guard: 0.6
-  remain_confined:
-    description: Your behavior isn't enough to earn special privileges.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: maximum_security
-  caught_planning:
-    description: Guards find escape plans hidden among your belongings.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: solitary_confinement
-  coordinated_escape:
-    description: You and another prisoner work together on the security flaw.
-    actions:
-      create_diversion:
-        description: Have your partner create a distraction while you escape.
-        probabilities:
-          escape_success: 0.5
-          both_caught: 0.5
-      double_cross:
-        description: Betray your partner to improve your own chances.
-        probabilities:
-          escape_success: 0.6
-          karma_backfires: 0.4
-  both_caught:
-    description: The plan fails and both of you are captured.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: solitary_confinement
-  karma_backfires:
-    description: Your betrayal comes back to haunt you when your partner alerts the
-      guards.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: solitary_confinement
-  caught_stealing:
-    description: A nurse catches you trying to steal medicine. Guards are called.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: solitary_confinement
-  caught_staring:
-    description: Your suspicious behavior attracts unwanted attention.
-    next_state: caught_by_guard
-    actions:
-      pretend_confusion:
-        description: Act disoriented as if you're still sick.
-        probabilities:
-          taken_to_infirmary: 0.6
-          caught_by_guard: 0.4
-      claim_interest:
-        description: Say you're interested in medicine.
+      recover:
+        description: Try to recover from your injuries.
         probabilities:
           prison_cell: 0.7
-          learn_medical_info: 0.3
-  laundry_room:
-    description: You're in the prison laundry room. Sheets and clothes are everywhere.
+          taken_to_infirmary: 0.3
+      plead_for_mercy:
+        description: Beg the guards to stop.
+        probabilities:
+          solitary_confinement: 0.8
+          prison_cell: 0.2
+  outer_yard:
+    description: You've reached the outer yard.
     actions:
-      make_rope:
-        description: Try to make a rope from bedsheets.
+      sneak_to_wall:
+        description: Move stealthily towards the prison wall.
+        probabilities:
+          outer_wall: 0.3
+          caught_by_guard: 0.7
+      hide_in_shadows:
+        description: Wait until nightfall before making a move.
+        probabilities:
+          safer_escape: 0.7
+          guards_notice: 0.3
+  safer_escape:
+    description: The cover of darkness allows you to move undetected.
+    actions:
+      sneak_to_wall:
+        description: Move stealthily towards the prison wall.
+        probabilities:
+          outer_wall: 0.3
+          caught_by_guard: 0.7
+      hide_in_shadows:
+        description: Wait until nightfall before making a move.
+        probabilities:
+          safer_escape: 0.7
+          guards_notice: 0.3
+  guards_notice:
+    description: The guards notice your presence and chase you.
+    actions:
+      run_for_it:
+        description: Try to outrun the guards.
+        probabilities:
+          escape_success: 0.2
+          caught_by_guard: 0.8
+      hide_in_shadows:
+        description: Duck into cover and wait for a better opportunity.
+        probabilities:
+          safer_escape: 0.7
+          guards_notice: 0.3
+  obtain_wire_cutters:
+    description: You've acquired wire cutters.
+    actions:
+      hide_wire_cutters:
+        description: Hide the wire cutters for later use.
+        grants: wire_cutters
+        next_state: prison_cell
+      use_immediately:
+        description: Try to use the wire cutters right away.
+        probabilities:
+          sabotage_fence: 0.6
+          caught_with_contraband: 0.4
+  sabotage_fence:
+    description: You've weakened a section of the perimeter fence.
+    actions:
+      break_through_now:
+        description: Force your way through the weakened section immediately.
+        probabilities:
+          escape_chase: 0.6
+          caught_by_guard: 0.4
+      mark_for_later:
+        description: Subtly mark the spot for a future escape attempt.
+        grants: fence_knowledge
+        next_state: work_duty
+      share_with_prisoner:
+        description: Tell another prisoner about the weakness.
+        probabilities:
+          prisoner_helps: 0.5
+          prisoner_snitches: 0.5
+  obtain_matches:
+    description: You've acquired matches.
+    actions:
+      hide_matches:
+        description: Hide the matches for later use.
+        grants: matches
+        next_state: prison_cell
+      use_immediately:
+        description: Try to use the matches right away.
+        probabilities:
+          start_fire: 0.6
+          caught_with_contraband: 0.4
+  start_fire:
+    description: You've started a fire.
+    actions:
+      create_distraction:
+        description: Use the fire to create a distraction.
+        probabilities:
+          distraction_works: 0.6
+          caught_by_guard: 0.4
+      signal_accomplice:
+        description: Signal another prisoner to create additional chaos.
+        probabilities:
+          prisoner_coordinated_escape: 0.6
+          caught_by_guard: 0.4
+  obtain_electronic_components:
+    description: You've acquired electronic components.
+    actions:
+      hide_components:
+        description: Hide the components for later use.
+        grants: electronic_components
+        next_state: prison_cell
+      use_immediately:
+        description: Try to use the components right away.
+        probabilities:
+          keycard_bypass_security: 0.6
+          caught_with_contraband: 0.4
+  obtain_wooden_planks:
+    description: You've acquired wooden planks.
+    actions:
+      hide_planks:
+        description: Hide the planks for later use.
+        grants: wooden_planks
+        next_state: prison_cell
+      use_immediately:
+        description: Try to use the planks right away.
+        probabilities:
+          reinforce_tunnel: 0.6
+          caught_with_contraband: 0.4
+  reinforce_tunnel:
+    description: You've reinforced the tunnel walls.
+    actions:
+      continue_digging:
+        description: Keep digging deeper.
+        probabilities:
+          tunnel_path: 0.5
+          tunnel_collapse: 0.5
+      reinforce_walls:
+        description: Strengthen the tunnel walls to prevent collapse.
         conditions:
-          requires: scissors
+          requires: wooden_planks
         probabilities:
-          obtain_rope: 0.7
-          caught_by_guard: 0.3
-      search_area:
-        description: Look around for useful items.
-        probabilities:
-          find_scissors: 0.4
-          find_nothing: 0.6
-      sabotage_machines:
-        description: Tamper with the laundry machines to create a distraction.
-        conditions:
-          requires: wrench
-        probabilities:
-          laundry_flood: 0.7
-          caught_by_guard: 0.3
+          safer_tunnel: 0.8
+          tunnel_collapse: 0.2
   obtain_rope:
-    description: You've successfully made a rope from bedsheets!
+    description: You've acquired a rope.
     actions:
       hide_rope:
         description: Hide the rope for later use.
         grants: rope
         next_state: prison_cell
-  find_scissors:
-    description: You find a pair of scissors hidden behind some shelves.
+      use_immediately:
+        description: Try to use the rope right away.
+        probabilities:
+          climb_wall: 0.6
+          caught_with_contraband: 0.4
+  climb_wall:
+    description: You've climbed over the prison wall.
     actions:
-      take_scissors:
-        description: Carefully pocket the scissors.
-        grants: scissors
-        next_state: laundry_room
-  obtain_shovel:
-    description: You managed to get your hands on a small shovel!
+      escape_success:
+        description: Continue your escape.
+        probabilities:
+          escape_success: 0.8
+          caught_by_guard: 0.2
+      fall_and_injure:
+        description: You slip and injure yourself.
+        next_state: taken_to_infirmary
+  fall_and_injure:
+    description: You've fallen and injured yourself.
+    next_state: taken_to_infirmary
     actions:
-      hide_shovel:
-        description: Carefully hide the shovel in your clothes.
-        grants: shovel
-        next_state: work_duty
+      recover:
+        description: Try to recover from your injuries.
+        probabilities:
+          prison_cell: 0.7
+          taken_to_infirmary: 0.3
+      plead_for_mercy:
+        description: Beg the guards to stop.
+        probabilities:
+          solitary_confinement: 0.8
+          prison_cell: 0.2
+  shot_by_guard:
+    description: A guard shoots at you as you attempt to escape!
+    actions:
+      fight_back:
+        description: Try to overpower them.
+        probabilities:
+          overpower_guard: 0.3
+          fail_fight: 0.7
+      cooperate:
+        description: Comply with the guards and hope for mercy.
+        probabilities:
+          taken_to_interrogation: 0.5
+          guard_throws_in_solitary: 0.5
+  obtain_guard_uniform:
+    description: You've acquired a prison guard uniform.
+    actions:
+      hide_uniform:
+        description: Hide the uniform for later use.
+        grants: guard_uniform
+        next_state: prison_cell
+      use_immediately:
+        description: Try to use the uniform right away.
+        probabilities:
+          blend_in_with_guards: 0.6
+          caught_with_contraband: 0.4
+  blend_in_with_guards:
+    description: You've successfully blended in with the guards.
+    actions:
+      escape_success:
+        description: Use your disguise to escape.
+        probabilities:
+          escape_success: 0.8
+          caught_by_guard: 0.2
+      sabotage_system:
+        description: Sabotage the system to prevent future use.
+        next_state: prison_cell
+  obtain_map:
+    description: You've acquired a map of the prison.
+    actions:
+      hide_map:
+        description: Hide the map for later use.
+        grants: map
+        next_state: prison_cell
+      use_immediately:
+        description: Try to use the map right away.
+        probabilities:
+          plan_escape_route: 0.6
+          caught_with_contraband: 0.4
+  plan_escape_route:
+    description: You've planned an escape route using the map.
+    actions:
+      execute_escape_plan:
+        description: Follow your plan to escape.
+        probabilities:
+          escape_success: 0.8
+          caught_by_guard: 0.2
+      sabotage_system:
+        description: Sabotage the system to prevent future use.
+        next_state: prison_cell
+  obtain_watch:
+    description: You've acquired a watch.
+    actions:
+      hide_watch:
+        description: Hide the watch for later use.
+        grants: watch
+        next_state: prison_cell
+      use_immediately:
+        description: Try to use the watch right away.
+        probabilities:
+          time_escape: 0.6
+          caught_with_contraband: 0.4
+  time_escape:
+    description: You've timed your escape using the watch.
+    actions:
+      execute_escape_plan:
+        description: Follow your plan to escape.
+        probabilities:
+          escape_success: 0.8
+          caught_by_guard: 0.2
+      sabotage_system:
+        description: Sabotage the system to prevent future use.
+        next_state: prison_cell
+  obtain_electronic_keycard:
+    description: You've acquired an electronic keycard.
+    actions:
+      hide_keycard:
+        description: Hide the keycard for later use.
+        grants: electronic_keycard
+        next_state: prison_cell
+      use_now:
+        description: Try to use the keycard right away.
+        probabilities:
+          bypass_security: 0.6
+          caught_with_contraband: 0.4
+  obtain_useless_junk:
+    description: You've acquired some useless junk.
+    actions:
+      hide_junk:
+        description: Hide the junk for later use.
+        grants: useless_junk
+        next_state: prison_cell
+      use_immediately:
+        description: Try to use the junk right away.
+        probabilities:
+          useless_junk: 0.8
+          caught_with_contraband: 0.2
+  useless_junk:
+    description: The junk is completely useless.
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+  obtain_contraband:
+    description: You've acquired contraband items.
+    actions:
+      hide_contraband:
+        description: Hide the contraband for later use.
+        grants: contraband
+        next_state: prison_cell
+      use_immediately:
+        description: Try to use the contraband right away.
+        probabilities:
+          escape_opportunity: 0.6
+          caught_with_contraband: 0.4
+  caught_with_contraband:
+    description: You've been caught with contraband!
+    actions:
+      fight_back:
+        description: Try to overpower them.
+        probabilities:
+          overpower_guard: 0.3
+          fail_fight: 0.7
+      cooperate:
+        description: Comply with the guards and hope for mercy.
+        probabilities:
+          taken_to_interrogation: 0.5
+          thrown_in_solitary: 0.5
+  guards_believe:
+    description: The guards believe your lie and let you go.
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+  escape_fight:
+    description: You've escaped the fight!
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+  win_fight:
+    description: You've won the fight!
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+  lose_fight:
+    description: You've lost the fight.
+    actions:
+      recover:
+        description: Try to recover from your injuries.
+        probabilities:
+          prison_cell: 0.7
+          taken_to_infirmary: 0.3
+      plead_for_mercy:
+        description: Beg the guards to stop.
+        probabilities:
+          solitary_confinement: 0.8
+          prison_cell: 0.2
+  gain_respect:
+    description: You've gained respect from the prisoners.
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+  provoke_fight:
+    description: You've provoked a fight with the prisoners.
+    actions:
+      fight_back:
+        description: Try to overpower them.
+        probabilities:
+          overpower_guard: 0.3
+          fail_fight: 0.7
+      cooperate:
+        description: Comply with the guards and hope for mercy.
+        probabilities:
+          taken_to_interrogation: 0.5
+          thrown_in_solitary: 0.5
+  learn_secret_passage:
+    description: You've learned about a secret passage.
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+  useless_information:
+    description: The information is useless.
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+  guard_suspects_you:
+    description: The guards suspect you of trying to escape.
+    actions:
+      fight_back:
+        description: Try to overpower them.
+        probabilities:
+          overpower_guard: 0.3
+          fail_fight: 0.7
+      cooperate:
+        description: Comply with the guards and hope for mercy.
+        probabilities:
+          taken_to_interrogation: 0.5
+          thrown_in_solitary: 0.5
+  get_caught:
+    description: You've been caught trying to steal tools.
+    actions:
+      fight_back:
+        description: Try to overpower them.
+        probabilities:
+          overpower_guard: 0.3
+          fail_fight: 0.7
+      cooperate:
+        description: Comply with the guards and hope for mercy.
+        probabilities:
+          taken_to_interrogation: 0.5
+          thrown_in_solitary: 0.5
+  caught_in_vent:
+    description: You've been caught in a vent.
+    actions:
+      fight_back:
+        description: Try to overpower them.
+        probabilities:
+          overpower_guard: 0.3
+          fail_fight: 0.7
+      cooperate:
+        description: Comply with the guards and hope for mercy.
+        probabilities:
+          taken_to_interrogation: 0.5
+          thrown_in_solitary: 0.5
+  air_duct_success:
+    description: You've successfully crawled through the air duct.
+    actions:
+      continue:
+        description: Continue on your path.
+    next_state: prison_cell
+  security_door:
+    description: You've reached a heavy security door.
+    actions:
+      investigate_door:
+        description: Investigate the door for weaknesses.
+        probabilities:
+          find_weakness: 0.4
+          caught_by_guard: 0.6
+  find_weakness:
+    description: You've found a weakness in the security door.
+    actions:
+      damage_door:
+        description: Try to damage the door to create an opening.
+        probabilities:
+          door_damaged: 0.6
+          caught_by_guard: 0.4
+  door_unlocked:
+    description: You've successfully unlocked the door.
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+  door_alarm:
+    description: The door alarm has been triggered.
+    actions:
+      fight_back:
+        description: Try to overpower them.
+        probabilities:
+          overpower_guard: 0.3
+          fail_fight: 0.7
+      cooperate:
+        description: Comply with the guards and hope for mercy.
+        probabilities:
+          taken_to_interrogation: 0.5
+          thrown_in_solitary: 0.5
+  laundry_room:
+    description: You've entered the laundry room.
+    actions:
+      search_laundry:
+        description: Look for useful items or tools.
+        probabilities:
+          find_tool: 0.3
+          find_nothing: 0.7
+      sabotage_equipment:
+        description: Damage equipment to create a distraction.
+        probabilities:
+          create_distraction: 0.6
+          caught_by_guard: 0.4
+      steal_tools:
+        description: Try to steal tools for later use.
+        probabilities:
+          obtain_tool: 0.5
+          caught_by_guard: 0.5
+  laundry_flood:
+    description: The laundry room is flooding!
+    actions:
+      swim_to_exit:
+        description: Swim to the exit.
+        probabilities:
+          escape_success: 0.2
+          drown: 0.8
+      find_exit:
+        description: Find an alternate exit.
+        probabilities:
+          escape_success: 0.5
+          caught_by_guard: 0.5
+  drown:
+    description: You've drowned in the flood.
+    next_state: solitary_confinement
+    actions:
+      recover:
+        description: Try to recover from your injuries.
+        probabilities:
+          prison_cell: 0.7
+          taken_to_infirmary: 0.3
+      plead_for_mercy:
+        description: Beg the guards to stop.
+        probabilities:
+          solitary_confinement: 0.8
+          prison_cell: 0.2
   cell_door:
-    description: You stand before your cell door, considering your options.
+    description: You're examining the cell door.
     actions:
       pick_lock:
         description: Try to pick the lock.
-        conditions:
-          requires: lockpick
         probabilities:
-          unlock_success: 0.6
-          lockpick_breaks: 0.4
-      wait_for_guard:
-        description: Wait for guard patrol.
+          unlock_success: 0.4
+          caught_by_guard: 0.6
+      damage_door:
+        description: Try to damage the door to create an opening.
         probabilities:
-          caught_by_guard: 0.8
-          opportunity_passes: 0.2
-      examine_hinges:
-        description: Check if the door hinges are vulnerable.
-        probabilities:
-          find_weak_point: 0.4
-          nothing_useful: 0.6
-      return_to_cell:
-        description: Go back to your cell for now.
-        next_state: prison_cell
-      unscrew_hinges:
-        description: Remove the door hinges.
-        conditions:
-          requires: screwdriver
-        probabilities:
-          unlock_success: 0.7
-          caught_by_guard: 0.3
-  opportunity_passes:
-    description: The moment passes without any chance to act.
+          door_damaged: 0.6
+          caught_by_guard: 0.4
+  unlock_success:
+    description: You've successfully unlocked the door.
     actions:
-      try_again:
-        description: Wait for another opportunity.
-        probabilities:
-          cell_door: 0.7
-          caught_by_guard: 0.3
-      return_to_bed:
-        description: Give up for now and return to your cell.
+      continue:
+        description: Continue on your path.
         next_state: prison_cell
-  interrogation_room:
-    description: You're strapped to a chair in the interrogation room. A stern officer
-      stares at you.
+  ignored_by_guards:
+    description: The guards ignore you.
     actions:
-      remain_silent:
-        description: Refuse to answer any questions.
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+  caught_stealing:
+    description: You've been caught stealing.
+    actions:
+      fight_back:
+        description: Try to overpower them.
         probabilities:
-          beaten_by_guard: 0.6
-          respect_earned: 0.4
+          overpower_guard: 0.3
+          fail_fight: 0.7
       cooperate:
-        description: Pretend to cooperate but give false information.
+        description: Comply with the guards and hope for mercy.
         probabilities:
-          guard_believes: 0.5
-          caught_lying: 0.5
-      bargain:
-        description: Offer information in exchange for better treatment.
-        probabilities:
-          work_duty: 0.7
-          solitary_confinement: 0.3
-  respect_earned:
-    description: Your resilience impresses the officer. He offers you a deal.
+          taken_to_interrogation: 0.5
+          thrown_in_solitary: 0.5
+  caught_staring:
+    description: You've been caught staring suspiciously.
     actions:
-      accept_deal:
-        description: Accept his offer to work as an informant.
+      fight_back:
+        description: Try to overpower them.
         probabilities:
-          prison_cell: 0.8
-          work_duty: 0.2
-      refuse_deal:
-        description: Maintain your integrity and refuse.
+          overpower_guard: 0.3
+          fail_fight: 0.7
+      cooperate:
+        description: Comply with the guards and hope for mercy.
         probabilities:
-          solitary_confinement: 0.7
-          beaten_by_guard: 0.3
-  caught_lying:
-    description: The officer catches you in a lie and becomes furious.
+          taken_to_interrogation: 0.5
+          thrown_in_solitary: 0.5
+  learned_security_pattern:
+    description: You've learned about a security pattern.
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+  better_opportunity:
+    description: A better opportunity for escape presents itself.
+    actions:
+      take_advantage:
+        description: Take advantage of the opportunity.
+        probabilities:
+          escape_success: 0.6
+          caught_by_guard: 0.4
+      wait_for_better_moment:
+        description: Wait for a more opportune moment.
+        probabilities:
+          better_opportunity: 0.5
+          work_duty: 0.5
+  portal_trap:
+    description: The portal was a trap!
+    actions:
+      fight_back:
+        description: Try to overpower them.
+        probabilities:
+          overpower_guard: 0.3
+          fail_fight: 0.7
+      cooperate:
+        description: Comply with the guards and hope for mercy.
+        probabilities:
+          taken_to_interrogation: 0.5
+          thrown_in_solitary: 0.5
+  portal_closes:
+    description: The portal closes behind you.
+    actions:
+      fight_back:
+        description: Try to overpower them.
+        probabilities:
+          overpower_guard: 0.3
+          fail_fight: 0.7
+      cooperate:
+        description: Comply with the guards and hope for mercy.
+        probabilities:
+          taken_to_interrogation: 0.5
+          thrown_in_solitary: 0.5
+  loosen_vent:
+    description: You've loosened the vent cover.
+    actions:
+      crawl_through_vent:
+        description: Crawl through the vent.
+        probabilities:
+          tunnel_path: 0.3
+          caught_in_vent: 0.7
+  guard_betrays_you:
+    description: The guard has betrayed you.
+    actions:
+      fight_back:
+        description: Try to overpower them.
+        probabilities:
+          overpower_guard: 0.3
+          fail_fight: 0.7
+      cooperate:
+        description: Comply with the guards and hope for mercy.
+        probabilities:
+          taken_to_interrogation: 0.5
+          thrown_in_solitary: 0.5
+  prisoner_helps:
+    description: The prisoner helps you.
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+  prisoner_snitches:
+    description: The prisoner snitches on you.
+    actions:
+      fight_back:
+        description: Try to overpower them.
+        probabilities:
+          overpower_guard: 0.3
+          fail_fight: 0.7
+      cooperate:
+        description: Comply with the guards and hope for mercy.
+        probabilities:
+          taken_to_interrogation: 0.5
+          thrown_in_solitary: 0.5
+  successful_escape:
+    description: You've successfully escaped the prison!
+    terminal: true
+    actions:
+      final_push:
+        description: Make the final push to freedom.
+        probabilities:
+          escape_success: 0.7
+          caught_at_last_moment: 0.3
+      careful_approach:
+        description: Proceed with extreme caution.
+        probabilities:
+          escape_success: 0.5
+          caught_by_guard: 0.5
+  access_wiring:
+    description: You've accessed the prison's electrical wiring.
+    actions:
+      sabotage_system:
+        description: Sabotage the system to create a distraction.
+        probabilities:
+          create_distraction: 0.6
+          caught_by_guard: 0.4
+      steal_components:
+        description: Try to steal electronic components.
+        probabilities:
+          obtain_electronic_components: 0.5
+          caught_by_guard: 0.5
+  staff_exit:
+    description: You've found a staff exit.
+    actions:
+      use_exit:
+        description: Use the exit to escape.
+        probabilities:
+          escape_success: 0.8
+          caught_by_guard: 0.2
+      sabotage_system:
+        description: Sabotage the system to prevent future use.
+        next_state: prison_cell
+  electronic_bypass:
+    description: You've bypassed the electronic security system.
+    actions:
+      escape_success:
+        description: Use the bypass to escape.
+        probabilities:
+          escape_success: 0.8
+          caught_by_guard: 0.2
+      sabotage_system:
+        description: Sabotage the system to prevent future use.
+        next_state: prison_cell
+  find_electronic_components:
+    description: You've found electronic components.
+    actions:
+      discard_components:
+        description: Throw away the useless components.
+        next_state: prison_cell
+      try_to_salvage:
+        description: Attempt to salvage some useful parts.
+        probabilities:
+          find_electronic_components: 0.3
+          caught_with_contraband: 0.7
+      trade_with_inmate:
+        description: Try to trade the junk to a gullible prisoner.
+        probabilities:
+          successful_trade: 0.4
+          prisoner_angry: 0.6
+  successful_trade:
+    description: You managed to trade the junk for something potentially useful.
+    actions:
+      receive_tool:
+        description: Accept a crude tool in exchange.
+        probabilities:
+          obtain_screwdriver: 0.5
+          obtain_lockpick: 0.5
+      receive_information:
+        description: Get information about the prison layout.
+        grants: prison_map_knowledge
+        next_state: prison_cell
+  prisoner_angry:
+    description: The prisoner is furious that you tried to trick them with worthless
+      junk.
     actions:
       apologize:
-        description: Beg for forgiveness and promise to tell the truth.
+        description: Try to calm them down with an apology.
         probabilities:
-          interrogation_room: 0.6
-          beaten_by_guard: 0.4
-      double_down:
-        description: Insist you're telling the truth despite evidence.
+          prisoner_calms: 0.4
+          prisoner_attacks: 0.6
+      threaten:
+        description: Intimidate them to back off.
         probabilities:
-          solitary_confinement: 0.8
-          beaten_by_guard: 0.2
+          prisoner_backs_down: 0.5
+          prisoner_attacks: 0.5
+      run_away:
+        description: Quickly leave before things escalate.
+        probabilities:
+          prison_cell: 0.7
+          prisoner_snitches: 0.3
+  prisoner_calms:
+    description: The prisoner accepts your apology but remains suspicious of you.
+    actions:
+      offer_future_favor:
+        description: Promise to help them later to make amends.
+        probabilities:
+          prisoner_friendly: 0.6
+          prisoner_dismisses: 0.4
+      leave_quietly:
+        description: Walk away while things are calm.
+        next_state: prison_cell
+  prisoner_backs_down:
+    description: Your intimidation worked. The prisoner backs away nervously.
+    actions:
+      demand_payment:
+        description: Demand something from them as compensation.
+        probabilities:
+          prisoner_gives_item: 0.4
+          prisoner_refuses: 0.6
+      establish_dominance:
+        description: Make it clear you're not to be messed with.
+        probabilities:
+          gain_respect: 0.7
+          prisoner_snitches: 0.3
+  prisoner_attacks:
+    description: The angry prisoner lunges at you with makeshift weapon!
+    actions:
+      fight_back:
+        description: Defend yourself and fight.
+        probabilities:
+          win_fight: 0.5
+          bully_beaten_badly: 0.5
+      call_for_guard:
+        description: Yell for the guards to intervene.
+        probabilities:
+          guards_intervene: 0.8
+          bully_beaten_badly: 0.2
+  prisoner_gives_item:
+    description: The intimidated prisoner hands over a small item.
+    actions:
+      take_item:
+        description: Accept what they're offering.
+        probabilities:
+          obtain_lockpick: 0.3
+          obtain_medicine: 0.3
+          obtain_contraband: 0.4
+      demand_more:
+        description: Push your luck and demand something better.
+        probabilities:
+          prisoner_gives_better_item: 0.3
+          prisoner_attacks: 0.7
+  prisoner_gives_better_item:
+    description: The prisoner reluctantly gives you something more valuable.
+    actions:
+      accept_item:
+        description: Take the valuable item.
+        probabilities:
+          obtain_screwdriver: 0.4
+          obtain_wire_cutters: 0.3
+          obtain_keycard: 0.3
+      leave_them_alone:
+        description: Thank them and leave them be.
+        next_state: prison_cell
+  prisoner_dismisses:
+    description: The prisoner ignores your offer and walks away.
+    actions:
+      return_to_cell:
+        description: Go back to your cell and plan your next move.
+        next_state: prison_cell
+      follow_prisoner:
+        description: Follow them to see where they go.
+        probabilities:
+          discover_secret: 0.4
+          caught_by_guard: 0.6
+  bad_trade:
+    description: You've been tricked! What you received in the trade is worthless.
+    actions:
+      confront_trader:
+        description: Go back and confront the prisoner who tricked you.
+        probabilities:
+          prisoner_apologizes: 0.3
+          prisoner_mocks_you: 0.7
+      learn_lesson:
+        description: Accept the loss and be more careful next time.
+        next_state: prison_cell
+      examine_item_closely:
+        description: Take a closer look at what you received.
+        probabilities:
+          hidden_value: 0.4
+          truly_worthless: 0.6
+  prisoner_apologizes:
+    description: The prisoner seems genuinely sorry and offers to make it right.
+    actions:
+      accept_new_offer:
+        description: Give them another chance.
+        probabilities:
+          successful_trade: 0.6
+          bad_trade: 0.4
+      demand_compensation:
+        description: Insist they give you something better.
+        probabilities:
+          prisoner_gives_better_item: 0.5
+          prisoner_refuses: 0.5
+  prisoner_mocks_you:
+    description: The prisoner laughs at your gullibility, attracting attention.
+    actions:
+      walk_away:
+        description: Swallow your pride and leave.
+        probabilities:
+          prison_cell: 0.8
+          followed_by_bullies: 0.2
+      teach_lesson:
+        description: Show them there are consequences for disrespect.
+        probabilities:
+          prisoner_attacks: 0.7
+          prisoner_backs_down: 0.3
+  hidden_value:
+    description: Upon closer inspection, the item actually contains something valuable
+      hidden inside!
+    actions:
+      extract_hidden_item:
+        description: Carefully retrieve the hidden item.
+        probabilities:
+          find_electronic_components: 0.4
+          obtain_lockpick: 0.3
+          obtain_key: 0.3
+      keep_as_is:
+        description: Keep it hidden for later use.
+        grants: contraband
+        next_state: prison_cell
+  truly_worthless:
+    description: There's nothing of value here. You've been completely duped.
+    actions:
+      discard_item:
+        description: Throw away the useless item.
+        next_state: prison_cell
+      use_as_decoy:
+        description: Keep it to potentially use as a decoy later.
+        grants: decoy_item
+        next_state: prison_cell
+  fail_fight:
+    description: You failed to win the fight and are now at the mercy of your opponents.
+    actions:
+      surrender:
+        description: Give up and accept your fate.
+        next_state: prison_cell
+      try_to_escape:
+        description: Make one last desperate attempt to escape.
+        probabilities:
+          escape_fight: 0.2
+          bully_beaten_badly: 0.8
   solitary_confinement:
-    description: You're thrown into a tiny, dark cell with nothing but your thoughts.
+    description: You're in solitary confinement - a tiny cell with nothing but your
+      thoughts.
     actions:
       meditate:
         description: Use the time to clear your mind and plan.
@@ -997,368 +1819,983 @@ states:
         probabilities:
           taken_to_infirmary: 0.5
           ignored_by_guards: 0.5
+      scratch_wall:
+        description: Scratch at a suspicious section of wall.
+        probabilities:
+          find_electronic_components: 0.3
+          find_nothing: 0.7
+  interrogation_room:
+    description: You're in a cold interrogation room with a single light overhead.
+    actions:
+      remain_silent:
+        description: Refuse to answer any questions.
+        probabilities:
+          thrown_in_solitary: 0.7
+          interrogation_continues: 0.3
+      cooperate_falsely:
+        description: Pretend to cooperate but give misleading information.
+        probabilities:
+          guards_believe: 0.4
+          caught_lying: 0.6
+      demand_lawyer:
+        description: Insist on speaking to a lawyer.
+        probabilities:
+          interrogation_continues: 0.8
+          returned_to_cell: 0.2
+  interrogation_continues:
+    description: The guards continue to pressure you for information.
+    actions:
+      break_down:
+        description: Finally give in to the pressure.
+        next_state: prison_cell
+      maintain_silence:
+        description: Continue refusing to speak.
+        next_state: solitary_confinement
+  returned_to_cell:
+    description: The guards return you to your cell.
+    next_state: prison_cell
+    actions:
+      rest:
+        description: Get some rest after the ordeal.
+        next_state: prison_cell
+      plan_next_move:
+        description: Start planning your next escape attempt.
+        next_state: prison_cell
+  caught_lying:
+    description: The guards caught you in a lie during interrogation.
+    actions:
+      apologize:
+        description: Apologize and try to explain yourself.
+        probabilities:
+          guards_believe: 0.3
+          thrown_in_solitary: 0.7
+      double_down:
+        description: Stick to your story despite evidence.
+        next_state: solitary_confinement
+  guard_suspects_you_again:
+    description: A guard is looking at you suspiciously.
+    actions:
+      act_normal:
+        description: Try to act casual and normal.
+        probabilities:
+          guard_loses_interest: 0.6
+          caught_by_guard: 0.4
+      run:
+        description: Make a break for it before they're sure.
+        probabilities:
+          escape_chase: 0.3
+          caught_by_guard: 0.7
+      create_distraction:
+        description: Try to divert the guard's attention.
+        probabilities:
+          guard_distracted: 0.5
+          caught_by_guard: 0.5
+  guard_loses_interest:
+    description: The guard stops paying attention to you.
+    actions:
+      continue_carefully:
+        description: Proceed with your plan, but more carefully.
+        next_state: hallway
+      return_to_cell:
+        description: Play it safe and return to your cell.
+        next_state: prison_cell
   mental_clarity:
     description: Your mind is sharp and focused after days of meditation.
     actions:
-      observe_guard_patterns:
-        description: Pay close attention to guard routines.
+      plan_escape:
+        description: Use your clear thinking to plan an escape.
+        grants: escape_plan
+        next_state: solitary_confinement
+      analyze_guard_patterns:
+        description: Study the guards' routines with your heightened awareness.
         probabilities:
-          learned_shift_pattern: 0.8
-          prison_cell: 0.2
-      devise_escape_plan:
-        description: Formulate a detailed escape strategy.
-        probabilities:
-          prison_cell: 0.9
-          lose_sanity: 0.1
+          learn_shift_pattern: 0.8
+          caught_staring: 0.2
   lose_sanity:
-    description: The isolation is too much. Your mind begins to fracture.
+    description: The isolation is getting to you. Your thoughts are becoming erratic.
     actions:
-      fight_madness:
+      try_to_focus:
         description: Struggle to maintain your grip on reality.
         probabilities:
-          mental_clarity: 0.4
-          complete_breakdown: 0.6
-      embrace_madness:
-        description: Let go and surrender to the chaos in your mind.
+          mental_clarity: 0.3
+          deeper_insanity: 0.7
+      scream_for_help:
+        description: Lose control and scream until someone comes.
         probabilities:
-          hidden_knowledge: 0.3
-          complete_breakdown: 0.7
-  complete_breakdown:
-    description: Your mind shatters completely. You'll never escape now.
-    terminal: true
-  hidden_knowledge:
-    description: In your madness, you discover a secret about the prison others can't
-      see.
+          guards_intervene: 0.9
+          ignored_by_guards: 0.1
+  deeper_insanity:
+    description: Your mind is slipping away. Reality and fantasy are blurring.
     actions:
-      follow_voices:
-        description: Listen to the whispers guiding you.
+      surrender_to_madness:
+        description: Give in to the hallucinations.
+        next_state: prison_cell
+      fight_for_sanity:
+        description: Desperately try to hold onto your sanity.
         probabilities:
-          find_secret_passage: 0.6
-          complete_breakdown: 0.4
-      scratch_wall_symbols:
-        description: Carve strange symbols into your cell wall.
-        probabilities:
-          magic_portal: 0.4
-          caught_by_guard: 0.6
+          mental_clarity: 0.4
+          lose_sanity: 0.6
   find_loose_brick:
-    description: You discover a loose brick in your cell wall.
+    description: You've discovered a loose brick in your cell wall.
     actions:
       remove_brick:
-        description: Carefully extract the brick to see what's behind it.
+        description: Carefully remove the brick to see what's behind it.
         probabilities:
-          find_tunnel: 0.5
-          find_hidden_item: 0.5
-      mark_location:
+          hidden_cavity: 0.7
+          brick_crumbles: 0.3
+      mark_for_later:
         description: Leave it for now but remember its location.
+        grants: cell_knowledge
         next_state: solitary_confinement
-  find_tunnel:
-    description: Behind the brick is the beginning of an old escape tunnel!
+  hidden_cavity:
+    description: Behind the brick is a small cavity that could be useful.
     actions:
-      enter_tunnel:
-        description: Squeeze into the narrow passage.
+      hide_contraband:
+        description: Use the cavity to hide items.
+        next_state: solitary_confinement
+      expand_cavity:
+        description: Try to make the hole bigger.
         probabilities:
-          tunnel_path: 0.7
-          tunnel_collapse: 0.3
-      widen_opening:
-        description: Work to make the hole bigger before entering.
-        probabilities:
+          tunnel_start: 0.4
           caught_by_guard: 0.6
-          tunnel_path: 0.4
-  find_hidden_item:
-    description: Inside the hole, you find something left by a previous prisoner.
+  brick_crumbles:
+    description: The brick breaks apart in your hands, making noise.
     actions:
-      take_item:
-        description: Retrieve the mysterious object.
-        probabilities:
-          obtain_lockpick: 0.5
-          obtain_map: 0.5
-      replace_brick:
-        description: Leave everything as you found it for now.
-        next_state: solitary_confinement
-  obtain_map:
-    description: You found a crude map of the prison's ventilation system!
-    actions:
-      memorize_map:
-        description: Study the map carefully then destroy it.
-        grants: map_knowledge
-        next_state: solitary_confinement
-      keep_map:
-        description: Hide the map on your person.
-        grants: map
+      clean_up_quickly:
+        description: Try to hide the evidence before guards notice.
         probabilities:
           solitary_confinement: 0.7
-          caught_with_contraband: 0.3
-  caught_with_contraband:
-    description: A guard finds the forbidden item during a surprise search!
-    actions:
-      swallow_evidence:
-        description: Quickly swallow the item before they can take it.
-        probabilities:
-          sick_from_item: 0.5
-          item_lost: 0.5
-      fight_guard:
-        description: Attack the guard to protect your precious item.
-        probabilities:
-          overpower_guard: 0.3
-          beaten_by_guard: 0.7
-  sick_from_item:
-    description: You feel terribly ill after swallowing the contraband.
-    actions:
-      seek_medical_help:
-        description: Ask to see the prison doctor.
-        probabilities:
-          taken_to_infirmary: 0.8
-          ignored_by_guards: 0.2
-      endure_pain:
-        description: Try to tough it out without help.
-        probabilities:
-          recover_naturally: 0.6
-          serious_illness: 0.4
-  item_lost:
-    description: The item is gone, but at least you weren't caught with it.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: solitary_confinement
-  recover_naturally:
-    description: Your body eventually processes the foreign object.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: solitary_confinement
-  serious_illness:
-    description: Your condition worsens dramatically. You need medical attention!
-    actions:
-      call_for_help:
-        description: Cry out for a doctor before it's too late.
-        probabilities:
-          taken_to_infirmary: 0.9
-          too_late: 0.1
-      use_illness:
-        description: Try to use your genuine illness as an escape opportunity.
-        probabilities:
-          escape_from_medical: 0.3
-          too_late: 0.7
-  too_late:
-    description: Medical help arrives too late. Your vision fades to black...
-    terminal: true
-  escape_from_medical:
-    description: In the confusion of your medical emergency, you find a chance to
-      slip away.
-    actions:
-      run_for_exit:
-        description: Make a desperate dash for freedom while weakened.
-        probabilities:
-          escape_success: 0.4
-          caught_by_guard: 0.6
-      hide_and_recover:
-        description: Find a place to hide and regain your strength first.
-        probabilities:
-          waste_disposal: 0.5
-          caught_by_guard: 0.5
-  air_duct_success:
-    description: You successfully navigate through the air ducts using your knowledge.
-    actions:
-      continue_through_ducts:
-        description: Keep crawling through the ventilation system.
-        conditions:
-          requires: map_knowledge
-        probabilities:
-          outer_wall: 0.6
-          caught_in_vent: 0.4
-      exit_to_room:
-        description: Drop down into what looks like an empty room.
-        probabilities:
-          laundry_room: 0.4
-          guard_room: 0.6
-  guard_room:
-    description: You've dropped right into the guard break room! Fortunately, it's
-      empty for now.
-    actions:
-      steal_uniform:
-        description: Quickly grab a guard uniform from a locker.
-        probabilities:
-          find_disguise: 0.7
           caught_by_guard: 0.3
-      search_for_weapons:
-        description: Look for anything that could be used as a weapon.
+      use_as_weapon:
+        description: Keep a sharp piece of brick as a potential weapon.
+        grants: improvised_weapon
         probabilities:
-          find_baton: 0.5
-          caught_by_guard: 0.5
-  find_baton:
-    description: You find a guard's baton left carelessly on a table.
+          solitary_confinement: 0.5
+          caught_with_contraband: 0.5
+  tunnel_start:
+    description: You've managed to create the beginning of a tunnel.
     actions:
-      take_baton:
-        description: Arm yourself with the baton.
-        grants: weapon
+      continue_digging:
+        description: Keep expanding the tunnel whenever possible.
         probabilities:
-          guard_room: 0.7
-          caught_by_guard: 0.3
-      leave_it:
-        description: It's too risky to take. Better find another way.
-        next_state: guard_room
-  guard_suspects_you:
-    description: A guard gives you a suspicious look. Your disguise isn't perfect.
+          tunnel_progress: 0.6
+          caught_by_guard: 0.4
+      hide_entrance:
+        description: Carefully conceal the tunnel entrance for later.
+        grants: tunnel_knowledge
+        next_state: solitary_confinement
+  tunnel_progress:
+    description: Your tunnel is making progress through the prison wall.
     actions:
-      act_confident:
-        description: Walk with authority and pretend you belong.
+      dig_further:
+        description: Continue expanding the tunnel.
         probabilities:
-          hallway: 0.5
-          caught_by_guard: 0.5
-      flash_fake_id:
-        description: Quickly show a makeshift ID and keep moving.
+          tunnel_breakthrough: 0.5
+          tunnel_collapse: 0.5
+      reinforce_tunnel:
+        description: Take time to make the tunnel more stable.
         probabilities:
-          hallway: 0.4
-          caught_by_guard: 0.6
-  unlock_success:
-    description: The lock clicks open! The hallway awaits.
+          safer_tunnel: 0.8
+          caught_by_guard: 0.2
+  guard_distracted:
+    description: The guard's attention is diverted away from you.
     actions:
-      move_quietly:
-        description: Sneak down the hallway carefully.
+      slip_away:
+        description: Use this opportunity to quietly move away.
         probabilities:
           hallway: 0.7
           caught_by_guard: 0.3
-      run_quickly:
-        description: Sprint down the hallway to save time.
+      take_guard_possessions:
+        description: Try to steal something from the distracted guard.
         probabilities:
-          hallway: 0.4
-          caught_by_guard: 0.6
-  find_weak_point:
-    description: You discover the hinges are rusty and might be removable.
-    actions:
-      try_remove_hinges:
-        description: Attempt to dismantle the door hinges.
+          obtain_keycard: 0.3
+          obtain_keys: 0.3
+          caught_by_guard: 0.4
+      attack_guard:
+        description: Take advantage and attack the guard.
         probabilities:
-          unlock_success: 0.5
+          overpower_guard: 0.5
           caught_by_guard: 0.5
-      mark_for_later:
-        description: Remember this weakness for a future attempt.
-        next_state: prison_cell
-  nothing_useful:
-    description: The door seems solid and well-maintained.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: cell_door
-  ignored_by_guards:
-    description: The guards ignore your pleas, thinking you're faking.
-    actions:
-      escalate_symptoms:
-        description: Make your fake illness seem more severe.
-        probabilities:
-          taken_to_infirmary: 0.4
-          punished_for_lying: 0.6
-      give_up_act:
-        description: Stop pretending and try something else.
-    next_state: prison_cell
-  punished_for_lying:
-    description: The guards realize you're faking and punish you.
+  thrown_in_solitary:
+    description: The guards throw you into solitary confinement.
     next_state: solitary_confinement
     actions:
       accept_punishment:
-        description: Endure the punishment quietly.
+        description: Accept your punishment and wait it out.
         next_state: solitary_confinement
-      resist_punishment:
-        description: Fight back against the guards.
+      resist_guards:
+        description: Struggle against the guards.
         probabilities:
-          beaten_by_guard: 0.9
-          intimidate_guard: 0.1
-  guard_betrays_you:
-    description: The guard takes your bribe but then betrays you!
+          bully_beaten_badly: 0.8
+          escape_fight: 0.2
+  create_distraction:
+    description: You need to create a distraction to divert attention.
     actions:
-      plead_for_mercy:
-        description: Beg the guard not to report you.
+      start_small_fire:
+        description: Set fire to some trash to draw guards away.
+        conditions:
+          requires: matches
         probabilities:
-          guard_reconsiders: 0.3
-          solitary_confinement: 0.7
-      threaten_guard:
-        description: Threaten to expose the guard's corruption.
+          fire_spreads: 0.4
+          guard_distracted: 0.6
+      fake_medical_emergency:
+        description: Pretend to have a seizure or heart attack.
         probabilities:
-          guard_scared: 0.4
-          beaten_by_guard: 0.6
-  guard_scared:
-    description: The guard looks nervous about your threat of exposure.
+          taken_to_infirmary: 0.5
+          guard_distracted: 0.5
+      cause_plumbing_issue:
+        description: Break a water pipe to flood the area.
+        probabilities:
+          area_floods: 0.7
+          caught_by_guard: 0.3
+  fire_spreads:
+    description: The fire you started is growing out of control!
     actions:
-      press_advantage:
-        description: Demand more help from the frightened guard.
+      use_as_cover:
+        description: Use the chaos to make your escape.
+        probabilities:
+          escape_opportunity: 0.7
+          caught_by_guard: 0.3
+      help_contain_fire:
+        description: Help guards put out the fire to gain trust.
+        probabilities:
+          guard_grateful: 0.6
+          still_suspected: 0.4
+  area_floods:
+    description: Water is pouring everywhere, creating confusion.
+    actions:
+      escape_in_chaos:
+        description: Use the flooding as cover for your escape.
+        probabilities:
+          hallway: 0.6
+          caught_by_guard: 0.4
+      pretend_to_help:
+        description: Act like you're trying to stop the flooding.
+        probabilities:
+          guard_grateful: 0.5
+          still_suspected: 0.5
+  still_suspected:
+    description: Despite your efforts, the guards still seem suspicious of you.
+    actions:
+      act_innocent:
+        description: Continue to act completely innocent.
+        probabilities:
+          guard_loses_interest: 0.4
+          guard_suspects_you: 0.6
+      create_new_distraction:
+        description: Try to create another distraction.
+        next_state: create_distraction
+  learn_shift_pattern:
+    description: You've observed the guards' patrol patterns and identified weaknesses.
+    actions:
+      plan_escape_route:
+        description: Use this knowledge to plan your escape.
+        grants: patrol_knowledge
+        next_state: prison_cell
+      exploit_immediately:
+        description: Try to take advantage of the pattern right now.
+        probabilities:
+          escape_opportunity: 0.6
+          caught_by_guard: 0.4
+  obtain_keys:
+    description: You've managed to get your hands on a set of prison keys!
+    actions:
+      hide_keys:
+        description: Hide the keys for later use.
+        grants: keys
+        next_state: prison_cell
+      use_immediately:
+        description: Try to use the keys right away.
+        probabilities:
+          unlock_success: 0.7
+          caught_with_contraband: 0.3
+  obtain_keycard:
+    description: You've acquired a guard's electronic keycard.
+    actions:
+      hide_keycard:
+        description: Hide the keycard for later use.
+        grants: electronic_keycard
+        next_state: prison_cell
+      use_immediately:
+        description: Try to use the keycard right away.
+        probabilities:
+          bypass_security: 0.6
+          caught_with_contraband: 0.4
+  guard_grateful:
+    description: The guard is grateful for your help and seems to trust you more.
+    actions:
+      ask_for_favor:
+        description: Try to leverage this goodwill for a favor.
         probabilities:
           guard_helps: 0.6
-          guard_reports_you: 0.4
-      back_off:
-        description: Ease the pressure to avoid pushing too far.
-        next_state: prison_cell
-  guard_reconsiders:
-    description: The guard hesitates, reconsidering their betrayal.
-    actions:
-      offer_more:
-        description: Offer additional incentives to secure loyalty.
+          guard_refuses: 0.4
+      build_relationship:
+        description: Continue to build trust with this guard.
         probabilities:
-          guard_helps: 0.7
-          item_lost: 0.3
-      appeal_to_conscience:
-        description: Try to appeal to the guard's better nature.
-        probabilities:
-          guard_helps: 0.5
-          guard_reports_you: 0.5
+          guard_friendship: 0.7
+          guard_suspicious: 0.3
   guard_helps:
-    description: The guard agrees to help you escape.
+    description: The guard agrees to help you in a small way.
     actions:
-      ask_for_key:
-        description: Ask for a key to the outer door.
+      request_information:
+        description: Ask about security procedures.
         probabilities:
-          obtain_key: 0.6
-          guard_changes_mind: 0.4
-      request_distraction:
-        description: Ask the guard to create a distraction.
+          learn_shift_pattern: 0.8
+          guard_suspicious: 0.2
+      request_contraband:
+        description: Ask for something you're not supposed to have.
         probabilities:
-          opportunity_arises: 0.7
-          guard_changes_mind: 0.3
-  guard_changes_mind:
-    description: The guard gets cold feet and backs out of the deal.
+          obtain_contraband: 0.4
+          guard_suspicious: 0.6
+  guard_refuses:
+    description: The guard refuses to help you despite your assistance.
     actions:
-      threaten_guard:
-        description: Threaten to expose their corruption if they don't help.
-        probabilities:
-          guard_scared: 0.5
-          guard_reports_you: 0.5
-      let_it_go:
-        description: Accept the setback and try another approach.
+      accept_gracefully:
+        description: Accept the refusal without complaint.
         next_state: prison_cell
-  learn_patrol_route:
-    description: You've memorized the guard patrol patterns.
-    actions:
-      use_knowledge:
-        description: Use this knowledge to plan your escape.
-        next_state: prison_cell
-      share_with_prisoner:
-        description: Share this information with another prisoner.
+      press_harder:
+        description: Insist that they owe you a favor.
         probabilities:
-          prisoner_friendly: 0.5
-          prisoner_hostile: 0.5
-  learn_medical_info:
-    description: You learn valuable information about the prison's medical procedures.
+          guard_annoyed: 0.7
+          guard_reconsiders: 0.3
+  guard_annoyed:
+    description: The guard is annoyed by your persistence.
     actions:
-      plan_medical_escape:
-        description: Plan an escape through the infirmary.
-        next_state: prison_cell
-      fake_serious_illness:
-        description: Use your knowledge to fake a convincing serious illness.
+      apologize:
+        description: Back down and apologize.
         probabilities:
-          taken_to_infirmary: 0.8
-          ignored_by_guards: 0.2
-  useless_information:
-    description: You are in the useless information state.
+          guard_calms: 0.6
+          guard_reports_you: 0.4
+      threaten:
+        description: Subtly threaten to report their misconduct.
+        probabilities:
+          guard_intimidated: 0.3
+          guard_reports_you: 0.7
+  guard_reconsiders:
+    description: The guard reluctantly reconsiders your request.
     actions:
-      continue:
-        description: Continue on your path.
-        next_state: prison_cell
-      look_around:
-        description: Look around for opportunities.
+      ask_for_small_favor:
+        description: Request something minor and low-risk.
         probabilities:
-          prison_cell: 0.7
-          hallway: 0.3
+          guard_helps: 0.8
+          guard_refuses: 0.2
+      push_your_luck:
+        description: Ask for something significant.
+        probabilities:
+          major_help: 0.3
+          guard_reports_you: 0.7
+  major_help:
+    description: The guard agrees to provide substantial assistance.
+    actions:
+      request_key:
+        description: Ask for a key to a restricted area.
+        probabilities:
+          obtain_keys: 0.7
+          guard_betrays_you: 0.3
+      request_blind_eye:
+        description: Ask them to look the other way during your escape.
+        probabilities:
+          escape_opportunity: 0.6
+          guard_betrays_you: 0.4
+  tunnel_breakthrough:
+    description: You've broken through to the other side of your tunnel!
+    actions:
+      emerge_carefully:
+        description: Carefully check what's on the other side.
+        probabilities:
+          outer_yard: 0.6
+          maintenance_tunnel: 0.4
+      rush_through:
+        description: Quickly move through the opening.
+        probabilities:
+          escape_opportunity: 0.4
+          caught_by_guard: 0.6
+  maintenance_tunnel:
+    description: You've emerged into a maintenance tunnel beneath the prison.
+    actions:
+      follow_tunnel:
+        description: Follow the tunnel to see where it leads.
+        probabilities:
+          sewage_system: 0.7
+          utility_room: 0.3
+      listen_for_activity:
+        description: Stop and listen for any signs of guards.
+        probabilities:
+          hear_guards: 0.4
+          all_clear: 0.6
+  sewage_system:
+    description: You're in the prison's sewage system. The smell is overwhelming.
+    actions:
+      follow_flow:
+        description: Follow the sewage flow toward the outside.
+        probabilities:
+          sewer_exit: 0.6
+          lost_in_sewers: 0.4
+      look_for_maintenance_access:
+        description: Search for a maintenance access point.
+        probabilities:
+          utility_room: 0.5
+          lost_in_sewers: 0.5
+  sewer_exit:
+    description: You've found where the sewer exits outside the prison walls!
+    actions:
+      squeeze_through_grate:
+        description: Try to squeeze through the sewer grate.
+        probabilities:
+          escape_success: 0.7
+          stuck_in_grate: 0.3
+      wait_for_nightfall:
+        description: Wait until dark before attempting to exit.
+        probabilities:
+          night_escape: 0.8
+          discovered_hiding: 0.2
+  night_escape:
+    description: Under cover of darkness, you prepare to make your final escape.
+    actions:
+      break_through_grate:
+        description: Force the grate open and escape.
+        probabilities:
+          escape_success: 0.8
+          caught_at_last_moment: 0.2
+      slip_through_quietly:
+        description: Carefully and quietly slip through the opening.
+        probabilities:
+          escape_success: 0.9
+          caught_at_last_moment: 0.1
   enter_portal:
-    description: You are in the enter portal state.
+    description: You step into the mysterious glowing portal.
+    actions:
+      move_forward:
+        description: Walk deeper into the strange light.
+        probabilities:
+          magical_escape: 0.3
+          portal_trap: 0.7
+      reach_out:
+        description: Cautiously reach out to touch the portal's edge.
+        probabilities:
+          portal_reveals_secret: 0.5
+          portal_closes: 0.5
+  magical_escape:
+    description: The portal transports you far away from the prison!
+    actions:
+      embrace_freedom:
+        description: Accept your miraculous escape.
+        next_state: escape_success
+      look_around:
+        description: Try to figure out where you've been transported.
+        probabilities:
+          strange_location: 0.8
+          familiar_place: 0.2
+  portal_reveals_secret:
+    description: The portal shows you visions of a secret escape route.
+    actions:
+      memorize_route:
+        description: Commit the secret route to memory.
+        grants: secret_knowledge
+        next_state: prison_cell
+      enter_vision:
+        description: Try to step into the vision itself.
+        probabilities:
+          magical_escape: 0.4
+          portal_closes: 0.6
+  strange_location:
+    description: You find yourself in a strange, unfamiliar place far from the prison.
+    actions:
+      explore_surroundings:
+        description: Look around to figure out where you are.
+        probabilities:
+          find_civilization: 0.6
+          wilderness_survival: 0.4
+      search_for_landmarks:
+        description: Try to find something recognizable.
+        probabilities:
+          familiar_place: 0.3
+          completely_lost: 0.7
+  find_civilization:
+    description: You've found signs of civilization in the distance.
+    actions:
+      approach_cautiously:
+        description: Carefully make your way toward the settlement.
+        probabilities:
+          escape_success: 0.8
+          recaptured: 0.2
+      observe_from_distance:
+        description: Watch from afar before approaching.
+        probabilities:
+          determine_location: 0.9
+          spotted_by_searchers: 0.1
+  wilderness_survival:
+    description: You're in untamed wilderness with no signs of human habitation.
+    actions:
+      find_shelter:
+        description: Look for a safe place to rest and plan.
+        probabilities:
+          found_cave: 0.6
+          exposed_to_elements: 0.4
+      forage_for_food:
+        description: Search for something edible.
+        probabilities:
+          found_food: 0.5
+          poisonous_plants: 0.5
+  completely_lost:
+    description: You have no idea where you are or how to get back to civilization.
+    actions:
+      pick_direction:
+        description: Choose a direction and start walking.
+        probabilities:
+          find_civilization: 0.4
+          wilderness_survival: 0.6
+      climb_high_point:
+        description: Find a high vantage point to survey the area.
+        probabilities:
+          determine_location: 0.7
+          fall_injury: 0.3
+  determine_location:
+    description: You've figured out roughly where you are.
+    actions:
+      head_toward_town:
+        description: Make your way toward the nearest settlement.
+        probabilities:
+          escape_success: 0.9
+          recaptured: 0.1
+      find_transportation:
+        description: Look for a road or vehicle to speed your journey.
+        probabilities:
+          hitchhike: 0.5
+          long_walk: 0.5
+  observe_from_distance:
+    description: You watch the settlement from afar before approaching.
+    actions:
+      approach_cautiously:
+        description: Carefully make your way toward the settlement.
+        probabilities:
+          escape_success: 0.8
+          caught_by_guard: 0.2
+      continue_observing:
+        description: Keep watching to learn more about the area.
+        probabilities:
+          determine_location: 0.9
+          caught_by_guard: 0.1
+  guard_friendship:
+    description: You've developed a genuine friendship with one of the guards.
+    actions:
+      ask_for_escape_help:
+        description: Ask your guard friend to help you escape.
+        probabilities:
+          guard_agrees_to_help: 0.4
+          guard_refuses_but_keeps_secret: 0.5
+          guard_betrays_you: 0.1
+      maintain_relationship:
+        description: Continue the friendship without pushing for escape help.
+        probabilities:
+          guard_shares_information: 0.8
+          guard_becomes_suspicious: 0.2
+  guard_agrees_to_help:
+    description: The guard has agreed to help you escape!
+    actions:
+      plan_together:
+        description: Work together on a detailed escape plan.
+        probabilities:
+          coordinated_escape: 0.8
+          plan_discovered: 0.2
+      act_immediately:
+        description: Take advantage of the offer right away.
+        probabilities:
+          escape_opportunity: 0.6
+          caught_by_other_guard: 0.4
+  guard_refuses_but_keeps_secret:
+    description: The guard won't help you escape but promises not to report you.
+    actions:
+      accept_decision:
+        description: Thank them for their discretion and maintain the friendship.
+        next_state: prison_cell
+      try_to_convince:
+        description: Make another attempt to persuade them.
+        probabilities:
+          guard_reconsiders: 0.3
+          guard_annoyed: 0.7
+  guard_shares_information:
+    description: Your guard friend shares valuable information about the prison.
+    actions:
+      use_for_escape_planning:
+        description: Use this information to plan your escape.
+        grants: inside_information
+        next_state: prison_cell
+      ask_for_more_details:
+        description: Press for even more specific information.
+        probabilities:
+          critical_intelligence: 0.5
+          guard_becomes_suspicious: 0.5
+  critical_intelligence:
+    description: You've obtained crucial information about a security vulnerability.
+    actions:
+      plan_exploit:
+        description: Carefully plan how to exploit this vulnerability.
+        grants: perfect_escape_plan
+        next_state: prison_cell
+      share_with_trusted_inmate:
+        description: Share the information with another prisoner you trust.
+        probabilities:
+          coordinated_escape: 0.6
+          prisoner_snitches: 0.4
+  coordinated_escape:
+    description: You've coordinated a successful escape with another prisoner.
+    actions:
+      escape_success:
+        description: Make your break while they're distracting the guards.
+        probabilities:
+          escape_success: 0.8
+          caught_by_guard: 0.2
+      betray_prisoner:
+        description: Betray the prisoner and take all the loot for yourself.
+        next_state: prison_cell
+  perfect_timing:
+    description: The conditions for your escape couldn't be better than right now.
+    actions:
+      make_your_move:
+        description: Execute your escape plan immediately.
+        probabilities:
+          escape_success: 0.95
+          caught_at_last_moment: 0.05
+      hesitate:
+        description: Second-guess yourself and delay.
+        probabilities:
+          missed_opportunity: 0.8
+          better_opportunity: 0.2
+  guard_becomes_suspicious:
+    description: The guard is becoming suspicious of your intentions.
+    actions:
+      back_off:
+        description: Stop pushing and act normal.
+        next_state: prison_cell
+      try_to_reassure:
+        description: Try to convince the guard you're trustworthy.
+        probabilities:
+          guard_loses_interest: 0.5
+          guard_reports_you: 0.5
+  guard_calms:
+    description: The guard calms down and seems less annoyed.
+    actions:
+      thank_guard:
+        description: Express gratitude for their understanding.
+        next_state: prison_cell
+      continue_conversation:
+        description: Try to continue the conversation on a different topic.
+        probabilities:
+          guard_friendly: 0.6
+          guard_dismisses_you: 0.4
+  guard_dismisses_you:
+    description: The guard dismisses you and tells you to leave.
+    actions:
+      comply:
+        description: Do as you're told and leave.
+        next_state: prison_cell
+      try_one_more_time:
+        description: Make one last attempt to engage.
+        probabilities:
+          guard_annoyed: 0.8
+          guard_reconsiders: 0.2
+  lost_in_sewers:
+    description: You're lost in the maze-like sewer system beneath the prison.
+    actions:
+      follow_water_flow:
+        description: Follow the direction of water flow.
+        probabilities:
+          sewage_system: 0.6
+          sewer_exit: 0.4
+      look_for_markings:
+        description: Search for maintenance markings or signs.
+        probabilities:
+          utility_room: 0.5
+          sewage_system: 0.5
+  caught_at_last_moment:
+    description: Just as freedom seemed certain, guards spot you!
+    actions:
+      surrender:
+        description: Give up - you were so close!
+        next_state: interrogation_room
+      make_final_dash:
+        description: Sprint with everything you have for freedom.
+        probabilities:
+          escape_success: 0.3
+          caught_by_guard: 0.7
+  found_cave:
+    description: You've found a small cave that provides shelter.
+    actions:
+      rest_and_recover:
+        description: Take time to rest and plan your next move.
+        probabilities:
+          determine_location: 0.7
+          wilderness_survival: 0.3
+      explore_deeper:
+        description: Investigate deeper into the cave.
+        probabilities:
+          find_supplies: 0.4
+          wilderness_survival: 0.6
+  find_supplies:
+    description: You discover some abandoned supplies in the cave!
+    actions:
+      take_supplies:
+        description: Gather the useful items.
+        next_state: determine_location
+      leave_supplies:
+        description: Leave them be and continue your journey.
+        next_state: wilderness_survival
+  missed_opportunity:
+    description: You hesitated too long and the opportunity has passed.
+    actions:
+      return_to_cell:
+        description: Return to your cell and plan again.
+        next_state: prison_cell
+      look_for_new_opportunity:
+        description: Try to find another way out.
+        probabilities:
+          hallway: 0.6
+          caught_by_guard: 0.4
+  plan_discovered:
+    description: Your escape plan has been discovered by the guards!
+    actions:
+      deny_involvement:
+        description: Claim you know nothing about it.
+        probabilities:
+          guards_believe: 0.2
+          interrogation_room: 0.8
+      make_desperate_attempt:
+        description: Try to escape now before they secure everything.
+        probabilities:
+          escape_opportunity: 0.3
+          caught_by_guard: 0.7
+  guard_suspicious:
+    description: The guard is suspicious of your behavior.
+    actions:
+      act_innocent:
+        description: Try to act completely innocent.
+        probabilities:
+          guard_loses_interest: 0.5
+          guard_reports_you: 0.5
+      create_distraction:
+        description: Create a distraction to divert attention.
+        next_state: create_distraction
+  caught_by_other_guard:
+    description: Another guard catches you in the act!
+    actions:
+      surrender:
+        description: Give up without resistance.
+        next_state: interrogation_room
+      try_to_escape:
+        description: Make a desperate attempt to escape.
+        probabilities:
+          escape_chase: 0.3
+          caught_by_guard: 0.7
+  obtain_medicine:
+    description: You've acquired some medicine that could be useful.
+    actions:
+      hide_medicine:
+        description: Hide the medicine for later use.
+        grants: medicine
+        next_state: prison_cell
+      use_immediately:
+        description: Use the medicine right away.
+        probabilities:
+          health_improved: 0.8
+          no_effect: 0.2
+  health_improved:
+    description: Your health has improved after taking the medicine.
+    actions:
+      rest:
+        description: Get some rest to fully recover.
+        next_state: prison_cell
+      continue_activities:
+        description: Use your improved condition to continue your plans.
+        next_state: hallway
+  keycard_bypass_security:
+    description: You've successfully bypassed the security system using the keycard.
+    actions:
+      escape_success:
+        description: Use the bypass to escape.
+        probabilities:
+          escape_success: 0.8
+          caught_by_guard: 0.2
+      sabotage_system:
+        description: Sabotage the system to prevent future use.
+        next_state: prison_cell
+  guard_throws_in_solitary:
+    description: The guards throw you into solitary confinement.
+    next_state: solitary_confinement
+    actions:
+      accept_punishment:
+        description: Accept your punishment and wait it out.
+        next_state: solitary_confinement
+      resist_guards:
+        description: Struggle against the guards.
+        probabilities:
+          bully_beaten_badly: 0.8
+          escape_fight: 0.2
+  prisoner_coordinated_escape:
+    description: You've coordinated a successful escape with another prisoner.
+    actions:
+      escape_success:
+        description: Make your break while they're distracting the guards.
+        probabilities:
+          escape_success: 0.8
+          caught_by_guard: 0.2
+      betray_prisoner:
+        description: Betray the prisoner and take all the loot for yourself.
+        next_state: prison_cell
+  found_food:
+    description: You've found some edible plants and berries.
+    actions:
+      eat_cautiously:
+        description: Carefully eat small amounts to test for safety.
+        probabilities:
+          health_improved: 0.7
+          poisonous_plants: 0.3
+      gather_for_later:
+        description: Collect the food for your journey.
+        next_state: wilderness_survival
+  poisonous_plants:
+    description: The plants you ate were poisonous! You feel sick.
+    actions:
+      induce_vomiting:
+        description: Try to purge the poison from your system.
+        probabilities:
+          health_improved: 0.5
+          wilderness_survival: 0.5
+      rest_and_recover:
+        description: Try to rest and let your body fight the poison.
+        probabilities:
+          health_improved: 0.4
+          wilderness_survival: 0.6
+  all_clear:
+    description: You don't hear any guards nearby. It seems safe to proceed.
+    actions:
+      continue_carefully:
+        description: Move forward with caution.
+        probabilities:
+          maintenance_tunnel: 0.8
+          caught_by_guard: 0.2
+      move_quickly:
+        description: Take advantage of the clear path to move faster.
+        probabilities:
+          utility_room: 0.6
+          caught_by_guard: 0.4
+  familiar_place:
+    description: You recognize where you are - this place is familiar to you.
+    actions:
+      head_to_safety:
+        description: Go to a place you know is safe.
+        probabilities:
+          escape_success: 0.9
+          recaptured: 0.1
+      seek_help:
+        description: Look for someone who might help you.
+        probabilities:
+          friendly_stranger: 0.6
+          hostile_encounter: 0.4
+  fall_injury:
+    description: You've fallen and injured yourself while climbing.
+    actions:
+      tend_to_wounds:
+        description: Try to treat your injuries.
+        probabilities:
+          health_improved: 0.6
+          infection_sets_in: 0.4
+      continue_despite_pain:
+        description: Push through the pain and keep moving.
+        probabilities:
+          determine_location: 0.5
+          condition_worsens: 0.5
+  infection_sets_in:
+    description: Your wound has become infected and you're developing a fever.
+    actions:
+      search_for_medicine:
+        description: Try to find something to treat the infection.
+        probabilities:
+          find_medicinal_plants: 0.4
+          condition_worsens: 0.6
+      seek_medical_help:
+        description: Try to find civilization for medical assistance.
+        probabilities:
+          find_civilization: 0.5
+          condition_worsens: 0.5
+  condition_worsens:
+    description: Your condition is deteriorating rapidly.
+    actions:
+      rest_completely:
+        description: Stop all movement and focus on recovery.
+        probabilities:
+          health_improved: 0.3
+          recaptured: 0.7
+      make_final_effort:
+        description: Use your remaining strength for one last push to freedom.
+        probabilities:
+          escape_success: 0.2
+          recaptured: 0.8
+  recaptured:
+    description: Prison authorities have found you and taken you back into custody.
+    actions:
+      surrender_peacefully:
+        description: Give up without resistance.
+        next_state: interrogation_room
+      resist_capture:
+        description: Fight against recapture.
+        probabilities:
+          escape_chase: 0.1
+          beaten_by_guards: 0.9
+  friendly_stranger:
+    description: You've encountered someone who seems willing to help you.
+    actions:
+      accept_help:
+        description: Gratefully accept their assistance.
+        probabilities:
+          escape_success: 0.8
+          betrayed_by_stranger: 0.2
+      remain_cautious:
+        description: Accept limited help while staying on guard.
+        probabilities:
+          escape_success: 0.6
+          continue_alone: 0.4
+  betrayed_by_stranger:
+    description: The person who offered to help has betrayed you to the authorities.
+    actions:
+      escape_quickly:
+        description: Try to escape before the authorities arrive.
+        probabilities:
+          escape_chase: 0.4
+          recaptured: 0.6
+      confront_betrayer:
+        description: Confront the person who betrayed you.
+        probabilities:
+          intimidate_betrayer: 0.3
+          recaptured: 0.7
+  intimidate_betrayer:
+    description: You've successfully intimidated the person who tried to betray you.
+    actions:
+      force_cooperation:
+        description: Force them to actually help you escape.
+        probabilities:
+          escape_success: 0.5
+          recaptured: 0.5
+      leave_immediately:
+        description: Get away from them as quickly as possible.
+        probabilities:
+          wilderness_survival: 0.7
+          recaptured: 0.3
+  continue_alone:
+    description: You decide to continue your journey to freedom alone.
+    actions:
+      head_for_border:
+        description: Make your way toward the nearest border.
+        probabilities:
+          escape_success: 0.6
+          recaptured: 0.4
+      find_remote_location:
+        description: Look for a remote place to lie low.
+        probabilities:
+          escape_success: 0.7
+          wilderness_survival: 0.3
+  hitchhike:
+    description: You are in the hitchhike state.
     actions:
       continue:
         description: Continue on your path.
@@ -1368,8 +2805,8 @@ states:
         probabilities:
           prison_cell: 0.7
           hallway: 0.3
-  lose_fight:
-    description: You are in the lose fight state.
+  return_to_cell:
+    description: You are in the return to cell state.
     actions:
       continue:
         description: Continue on your path.
@@ -1379,8 +2816,8 @@ states:
         probabilities:
           prison_cell: 0.7
           hallway: 0.3
-  successful_escape:
-    description: You are in the successful escape state.
+  exposed_to_elements:
+    description: You are in the exposed to elements state.
     actions:
       continue:
         description: Continue on your path.
@@ -1390,8 +2827,8 @@ states:
         probabilities:
           prison_cell: 0.7
           hallway: 0.3
-  beaten_by_guards:
-    description: You are in the beaten by guards state.
+  spotted_by_searchers:
+    description: You are in the spotted by searchers state.
     actions:
       continue:
         description: Continue on your path.
@@ -1401,74 +2838,8 @@ states:
         probabilities:
           prison_cell: 0.7
           hallway: 0.3
-  get_caught:
-    description: You are in the get caught state.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: prison_cell
-      look_around:
-        description: Look around for opportunities.
-        probabilities:
-          prison_cell: 0.7
-          hallway: 0.3
-  guard_believes:
-    description: You are in the guard believes state.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: prison_cell
-      look_around:
-        description: Look around for opportunities.
-        probabilities:
-          prison_cell: 0.7
-          hallway: 0.3
-  win_fight:
-    description: You are in the win fight state.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: prison_cell
-      look_around:
-        description: Look around for opportunities.
-        probabilities:
-          prison_cell: 0.7
-          hallway: 0.3
-  intimidate_guard:
-    description: You are in the intimidate guard state.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: prison_cell
-      look_around:
-        description: Look around for opportunities.
-        probabilities:
-          prison_cell: 0.7
-          hallway: 0.3
-  learn_secret_passage:
-    description: You are in the learn secret passage state.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: prison_cell
-      look_around:
-        description: Look around for opportunities.
-        probabilities:
-          prison_cell: 0.7
-          hallway: 0.3
-  provoke_fight:
-    description: You are in the provoke fight state.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: prison_cell
-      look_around:
-        description: Look around for opportunities.
-        probabilities:
-          prison_cell: 0.7
-          hallway: 0.3
-  learned_security_pattern:
-    description: You are in the learned security pattern state.
+  guard_intimidated:
+    description: You are in the guard intimidated state.
     actions:
       continue:
         description: Continue on your path.
@@ -1489,8 +2860,8 @@ states:
         probabilities:
           prison_cell: 0.7
           hallway: 0.3
-  guards_believe:
-    description: You are in the guards believe state.
+  no_effect:
+    description: You are in the no effect state.
     actions:
       continue:
         description: Continue on your path.
@@ -1500,8 +2871,8 @@ states:
         probabilities:
           prison_cell: 0.7
           hallway: 0.3
-  obtain_tool:
-    description: You are in the obtain tool state.
+  utility_room:
+    description: You are in the utility room state.
     actions:
       continue:
         description: Continue on your path.
@@ -1511,39 +2882,118 @@ states:
         probabilities:
           prison_cell: 0.7
           hallway: 0.3
+  guard_friendly:
+    description: You are in the guard friendly state.
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+      look_around:
+        description: Look around for opportunities.
+        probabilities:
+          prison_cell: 0.7
+          hallway: 0.3
+  find_medicinal_plants:
+    description: You are in the find medicinal plants state.
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+      look_around:
+        description: Look around for opportunities.
+        probabilities:
+          prison_cell: 0.7
+          hallway: 0.3
+  guards_arrive:
+    description: You are in the guards arrive state.
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+      look_around:
+        description: Look around for opportunities.
+        probabilities:
+          prison_cell: 0.7
+          hallway: 0.3
+  hear_guards:
+    description: You are in the hear guards state.
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+      look_around:
+        description: Look around for opportunities.
+        probabilities:
+          prison_cell: 0.7
+          hallway: 0.3
+  long_walk:
+    description: You are in the long walk state.
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+      look_around:
+        description: Look around for opportunities.
+        probabilities:
+          prison_cell: 0.7
+          hallway: 0.3
+  discovered_hiding:
+    description: You are in the discovered hiding state.
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+      look_around:
+        description: Look around for opportunities.
+        probabilities:
+          prison_cell: 0.7
+          hallway: 0.3
+  stuck_in_grate:
+    description: You are in the stuck in grate state.
+    actions:
+      continue:
+        description: Continue on your path.
+        next_state: prison_cell
+      look_around:
+        description: Look around for opportunities.
+        probabilities:
+          prison_cell: 0.7
+          hallway: 0.3
+  item_lost:
+    description: You lost the item you were carrying.
+    actions:
+      search_for_replacement:
+        description: Look for something else that might help.
+        probabilities:
+          find_tool: 0.3
+          waste_time: 0.7
+      continue_without_it:
+        description: Proceed with your escape plan without the item.
+        next_state: prison_cell
+  nothing_useful:
+    description: You find nothing useful here.
+    actions:
+      keep_looking:
+        description: Continue searching more thoroughly.
+        probabilities:
+          find_tool: 0.2
+          waste_time: 0.8
+      give_up:
+        description: Stop searching and try something else.
+        next_state: prison_cell
   opportunity_arises:
-    description: You are in the opportunity arises state.
+    description: A perfect opportunity for escape presents itself!
     actions:
-      continue:
-        description: Continue on your path.
-        next_state: prison_cell
-      look_around:
-        description: Look around for opportunities.
+      take_chance:
+        description: Seize the opportunity immediately.
         probabilities:
-          prison_cell: 0.7
-          hallway: 0.3
-  find_secret_passage:
-    description: You are in the find secret passage state.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: prison_cell
-      look_around:
-        description: Look around for opportunities.
+          escape_success: 0.4
+          caught_by_guard: 0.6
+      wait_for_better_timing:
+        description: Wait for an even better moment.
         probabilities:
-          prison_cell: 0.7
-          hallway: 0.3
-  gain_respect:
-    description: You are in the gain respect state.
-    actions:
-      continue:
-        description: Continue on your path.
-        next_state: prison_cell
-      look_around:
-        description: Look around for opportunities.
-        probabilities:
-          prison_cell: 0.7
-          hallway: 0.3
+          opportunity_lost: 0.7
+          better_opportunity: 0.3
   opportunity_lost:
     description: The opportunity has passed. You'll need to find another way.
     actions:
@@ -1555,33 +3005,19 @@ states:
         probabilities:
           hallway: 0.5
           caught_by_guard: 0.5
-  better_opportunity:
-    description: Your patience paid off! An even better opportunity appears.
+  intimidate_guard:
+    description: You've successfully intimidated a guard.
     actions:
-      take_it:
-        description: Take advantage of this perfect moment.
+      demand_keys:
+        description: Demand the keys to the exit.
         probabilities:
-          escape_success: 0.6
-          caught_by_guard: 0.4
-  guards_intervene:
-    description: Guards rush in to break up the fight.
-    actions:
-      surrender:
-        description: Give up peacefully.
-        next_state: solitary_confinement
-      resist:
-        description: Fight against the guards too.
+          obtain_key: 0.4
+          guard_calls_backup: 0.6
+      force_cooperation:
+        description: Force the guard to help you escape.
         probabilities:
-          beaten_by_guard: 0.8
-          create_distraction: 0.2
-  create_distraction:
-    description: The chaos creates a perfect distraction.
-    actions:
-      escape_in_chaos:
-        description: Use the confusion to make your escape.
-        probabilities:
-          hallway: 0.6
-          caught_by_guard: 0.4
+          guard_helps: 0.5
+          guard_betrays_you: 0.5
   guard_calls_backup:
     description: The guard has called for backup!
     actions:
@@ -1592,17 +3028,6 @@ states:
           caught_by_guard: 0.6
       surrender:
         description: Give up before things get worse.
-        next_state: solitary_confinement
-  caught_at_last_moment:
-    description: You were caught at the last possible moment!
-    actions:
-      desperate_struggle:
-        description: Fight with everything you have!
-        probabilities:
-          escape_success: 0.3
-          beaten_by_guard: 0.7
-      surrender:
-        description: Give up. There will be other chances.
         next_state: solitary_confinement
   escape_custody:
     description: You've managed to break free from the guards!
@@ -1617,739 +3042,3 @@ states:
         probabilities:
           air_duct_success: 0.5
           caught_by_guard: 0.5
-  laundry_flood:
-    description: Water pours from the damaged machines, creating chaos in the laundry room.
-    actions:
-      escape_in_confusion:
-        description: Use the distraction to slip away.
-        probabilities:
-          hallway: 0.7
-          caught_by_guard: 0.3
-      collect_water:
-        description: Fill a container with water for later use.
-        probabilities:
-          obtain_water: 0.8
-          caught_by_guard: 0.2
-  safer_tunnel:
-    description: The tunnel is now reinforced and much less likely to collapse.
-    actions:
-      continue_digging:
-        description: Keep extending the tunnel with your shovel.
-        conditions:
-          requires: shovel
-        probabilities:
-          outer_wall: 0.7
-          tunnel_path: 0.3
-      install_lighting:
-        description: Set up crude lighting to see better.
-        conditions:
-          requires: matches
-        probabilities:
-          lit_tunnel: 0.9
-          fire_hazard: 0.1
-      return_to_cell:
-        description: Go back to your cell for now and continue later.
-        next_state: prison_cell
-        
-  lit_tunnel:
-    description: Your tunnel is now dimly lit, making navigation much easier.
-    actions:
-      dig_efficiently:
-        description: With better visibility, you can dig more effectively.
-        conditions:
-          requires: shovel
-        probabilities:
-          outer_wall: 0.8
-          tunnel_path: 0.2
-      map_tunnel:
-        description: Create a map of the tunnel system.
-        conditions:
-          requires: paper_and_pencil
-        probabilities:
-          tunnel_mapped: 0.9
-          tunnel_path: 0.1
-          
-  tunnel_mapped:
-    description: With your map, you can navigate the tunnel system efficiently.
-    actions:
-      find_optimal_route:
-        description: Use your map to find the shortest path to freedom.
-        probabilities:
-          outer_wall: 0.9
-          tunnel_path: 0.1
-      share_map:
-        description: Share your map with a trusted prisoner.
-        probabilities:
-          prisoner_helps: 0.6
-          prisoner_snitches: 0.4
-          
-  fire_hazard:
-    description: Your lighting attempt has started a small fire in the tunnel!
-    actions:
-      extinguish_fire:
-        description: Try to put out the fire quickly.
-        conditions:
-          requires: water_bottle
-        probabilities:
-          tunnel_path: 0.8
-          tunnel_collapse: 0.2
-      abandon_tunnel:
-        description: Flee the tunnel before the fire spreads.
-        probabilities:
-          prison_cell: 0.7
-          caught_by_guard: 0.3
-          
-  obtain_water:
-    description: You've managed to collect some water in a container.
-    actions:
-      keep_water:
-        description: Store the water for later use.
-        grants: water_bottle
-        next_state: prison_cell
-      create_slippery_floor:
-        description: Pour water on the floor to make guards slip.
-        probabilities:
-          guard_falls: 0.6
-          caught_by_guard: 0.4
-          
-  guard_falls:
-    description: A guard slips on the wet floor and falls hard, dropping their keys.
-    actions:
-      take_keys:
-        description: Quickly grab the keys while the guard is down.
-        probabilities:
-          obtain_keys: 0.7
-          caught_by_guard: 0.3
-      help_guard:
-        description: Pretend to help the guard to gain trust.
-        probabilities:
-          guard_grateful: 0.6
-          guard_suspicious: 0.4
-          
-  obtain_keys:
-    description: You now have a set of guard keys!
-    actions:
-      use_immediately:
-        description: Try to use the keys right away.
-        probabilities:
-          unlock_success: 0.8
-          caught_by_guard: 0.2
-      hide_keys:
-        description: Hide the keys for later use.
-        grants: keys
-        next_state: prison_cell
-        
-  guard_grateful:
-    description: The guard thanks you for your help and seems to trust you more.
-    actions:
-      ask_for_favor:
-        description: Ask the guard for a small favor.
-        probabilities:
-          guard_helps: 0.7
-          guard_refuses: 0.3
-      build_relationship:
-        description: Continue to build trust with this guard.
-        next_state: prison_cell
-        
-  workshop:
-    description: You're in the prison workshop where inmates make license plates and furniture.
-    actions:
-      craft_tool:
-        description: Try to secretly make a tool.
-        probabilities:
-          craft_success: 0.5
-          caught_by_guard: 0.5
-      steal_supplies:
-        description: Pocket some useful materials.
-        probabilities:
-          obtain_materials: 0.6
-          caught_stealing: 0.4
-      sabotage_equipment:
-        description: Damage a machine to create a distraction.
-        conditions:
-          requires: wrench
-        probabilities:
-          workshop_chaos: 0.8
-          caught_by_guard: 0.2
-          
-  craft_success:
-    description: You've successfully crafted a useful tool!
-    actions:
-      make_shiv:
-        description: Fashion a crude but effective shiv.
-        grants: weapon
-        next_state: workshop
-      make_screwdriver:
-        description: Create a makeshift screwdriver.
-        grants: screwdriver
-        next_state: workshop
-      make_lockpick:
-        description: Craft a thin metal lockpick.
-        grants: lockpick
-        next_state: workshop
-        
-  obtain_materials:
-    description: You've managed to collect some useful materials.
-    actions:
-      keep_materials:
-        description: Hide the materials for later use.
-        grants: crafting_materials
-        next_state: workshop
-      trade_with_inmate:
-        description: Trade the materials with another prisoner.
-        probabilities:
-          favorable_trade: 0.6
-          bad_trade: 0.4
-          
-  favorable_trade:
-    description: You make a good trade and receive something valuable.
-    actions:
-      trade_for_medicine:
-        description: Receive painkillers that could be useful.
-        grants: medicine
-        next_state: workshop
-      trade_for_information:
-        description: Get information about guard rotations.
-        probabilities:
-          learn_shift_pattern: 0.8
-          useless_information: 0.2
-      trade_for_tool:
-        description: Acquire a tool from another prisoner.
-        probabilities:
-          obtain_wrench: 0.5
-          obtain_matches: 0.5
-          
-  obtain_wrench:
-    description: You've acquired a small wrench that could be useful.
-    actions:
-      keep_wrench:
-        description: Hide the wrench for later use.
-        grants: wrench
-        next_state: prison_cell
-      use_immediately:
-        description: Try to use the wrench right away.
-        probabilities:
-          loosen_vent: 0.7
-          caught_with_contraband: 0.3
-          
-  obtain_matches:
-    description: You've acquired a small box of matches.
-    actions:
-      keep_matches:
-        description: Hide the matches for later use.
-        grants: matches
-        next_state: prison_cell
-      start_distraction:
-        description: Create a small fire as a distraction.
-        probabilities:
-          fire_alarm: 0.8
-          caught_by_guard: 0.2
-          
-  loosen_vent:
-    description: You've managed to loosen a vent cover with your wrench.
-    actions:
-      remove_vent:
-        description: Take off the vent cover and look inside.
-        probabilities:
-          air_duct_success: 0.8
-          caught_by_guard: 0.2
-      mark_for_later:
-        description: Leave it for now but remember its location.
-        next_state: prison_cell
-        
-  fire_alarm:
-    description: The fire alarm blares and guards rush to respond to the emergency.
-    actions:
-      escape_in_chaos:
-        description: Use the confusion to make your escape.
-        probabilities:
-          hallway: 0.7
-          caught_by_guard: 0.3
-      blend_with_evacuees:
-        description: Join the evacuating prisoners and try to slip away.
-        probabilities:
-          outer_yard: 0.6
-          caught_by_guard: 0.4
-          
-  outer_yard:
-    description: You're in the prison's outer yard, closer to freedom but still inside the walls.
-    actions:
-      climb_fence:
-        description: Try to climb over the perimeter fence.
-        conditions:
-          requires: rope
-        probabilities:
-          escape_success: 0.6
-          caught_by_guard: 0.4
-      dig_under_fence:
-        description: Try to dig under the fence.
-        conditions:
-          requires: shovel
-        probabilities:
-          escape_success: 0.5
-          caught_by_guard: 0.5
-      cut_fence:
-        description: Cut through the fence.
-        conditions:
-          requires: wire_cutters
-        probabilities:
-          escape_success: 0.7
-          caught_by_guard: 0.3
-      hide_and_observe:
-        description: Find cover and watch for patrol patterns.
-        probabilities:
-          learn_patrol_route: 0.7
-          caught_by_guard: 0.3
-          
-  workshop_chaos:
-    description: The damaged equipment has caused chaos in the workshop. Guards are distracted.
-    actions:
-      steal_tools:
-        description: Use the distraction to steal better tools.
-        probabilities:
-          obtain_wire_cutters: 0.5
-          caught_stealing: 0.5
-      escape_workshop:
-        description: Slip away while everyone is focused on the damage.
-        probabilities:
-          hallway: 0.7
-          caught_by_guard: 0.3
-          
-  obtain_wire_cutters:
-    description: You've managed to get your hands on a pair of wire cutters!
-    actions:
-      hide_cutters:
-        description: Carefully hide the wire cutters for later.
-        grants: wire_cutters
-        next_state: prison_cell
-      use_immediately:
-        description: Try to use the cutters right away.
-        probabilities:
-          cut_through_barrier: 0.6
-          caught_with_contraband: 0.4
-          
-  cut_through_barrier:
-    description: You've cut through a chain-link barrier!
-    actions:
-      proceed_carefully:
-        description: Move forward cautiously.
-        probabilities:
-          restricted_area: 0.7
-          caught_by_guard: 0.3
-      run_through:
-        description: Dash through the opening quickly.
-        probabilities:
-          restricted_area: 0.5
-          caught_by_guard: 0.5
-          
-  restricted_area:
-    description: You're in a restricted area of the prison. Few inmates ever come here.
-    actions:
-      search_for_exit:
-        description: Look for a way outside.
-        probabilities:
-          find_exit: 0.6
-          caught_by_guard: 0.4
-      hide_and_observe:
-        description: Stay hidden and watch guard movements.
-        probabilities:
-          learn_patrol_route: 0.7
-          caught_by_guard: 0.3
-      access_control_room:
-        description: Try to enter the nearby control room.
-        conditions:
-          requires: keys
-        probabilities:
-          control_room: 0.8
-          caught_by_guard: 0.2
-          
-  control_room:
-    description: You're in the prison's control room with access to security systems.
-    actions:
-      trigger_lockdown:
-        description: Activate a lockdown to create confusion.
-        probabilities:
-          prison_lockdown: 0.9
-          caught_by_guard: 0.1
-      disable_cameras:
-        description: Turn off the security cameras.
-        probabilities:
-          cameras_disabled: 0.8
-          security_alerted: 0.2
-      open_cell_doors:
-        description: Release all prisoners to cause a massive distraction.
-        probabilities:
-          prison_riot: 0.9
-          caught_by_guard: 0.1
-          
-  cameras_disabled:
-    description: The security cameras are now offline. Guards are on high alert but can't see everything.
-    actions:
-      move_through_blind_spots:
-        description: Navigate carefully through camera blind spots.
-        probabilities:
-          outer_yard: 0.7
-          caught_by_guard: 0.3
-      sabotage_more_systems:
-        description: Disable more security systems while you're here.
-        probabilities:
-          security_breach: 0.6
-          security_alerted: 0.4
-          
-  security_breach:
-    description: You've compromised multiple prison systems. Alarms are blaring and confusion reigns.
-    actions:
-      escape_in_chaos:
-        description: Use the massive confusion to make your escape.
-        probabilities:
-          escape_success: 0.7
-          caught_at_last_moment: 0.3
-      release_all_locks:
-        description: Open every door in the prison.
-        probabilities:
-          total_chaos: 0.8
-          security_alerted: 0.2
-          
-  total_chaos:
-    description: The prison has descended into complete chaos. Guards are overwhelmed trying to maintain control.
-    actions:
-      blend_with_riot:
-        description: Join the riot as cover for your escape.
-        probabilities:
-          escape_success: 0.8
-          caught_in_crossfire: 0.2
-      find_guard_exit:
-        description: Look for the special exits guards use during emergencies.
-        probabilities:
-          guard_exit: 0.7
-          caught_by_guard: 0.3
-          
-  guard_exit:
-    description: You've found a secure exit used by guards during emergencies.
-    actions:
-      pick_electronic_lock:
-        description: Try to bypass the electronic lock.
-        conditions:
-          requires: electronic_keycard
-        probabilities:
-          escape_success: 0.9
-          security_alerted: 0.1
-      force_door:
-        description: Try to force the door open.
-        conditions:
-          requires: crowbar
-        probabilities:
-          escape_success: 0.7
-          door_jams: 0.3
-
-  security_door:
-    description: You encounter a heavy security door with both electronic and mechanical locks.
-    actions:
-      examine_door:
-        description: Study the door's security features carefully.
-        probabilities:
-          identify_security_features: 0.9
-          caught_by_guard: 0.1
-      try_brute_force:
-        description: Attempt to force the door open.
-        probabilities:
-          door_alarm: 0.9
-          door_damaged: 0.1
-      retreat:
-        description: Back away and look for another route.
-        next_state: hallway
-        
-  identify_security_features:
-    description: You identify that the door requires both an electronic keycard and a physical key to open.
-    actions:
-      look_for_bypass:
-        description: Search for a way to bypass the security.
-        probabilities:
-          find_maintenance_panel: 0.6
-          caught_by_guard: 0.4
-      mark_for_later:
-        description: Remember this door for when you have the right tools.
-        next_state: hallway
-      
-  find_maintenance_panel:
-    description: You discover a maintenance panel near the door that could provide access to the wiring.
-    actions:
-      open_panel:
-        description: Try to open the maintenance panel.
-        conditions:
-          requires: screwdriver
-        probabilities:
-          access_wiring: 0.8
-          panel_jammed: 0.2
-      look_for_key:
-        description: Search the area for a hidden key.
-        probabilities:
-          find_nothing: 0.7
-          find_keycard: 0.3
-          
-  access_wiring:
-    description: You've opened the panel, exposing a complex array of wires and circuits.
-    actions:
-      rewire_door:
-        description: Attempt to bypass the electronic lock by rewiring.
-        conditions:
-          requires: wire_cutters
-        probabilities:
-          partial_bypass: 0.7
-          door_alarm: 0.3
-      install_bypass_device:
-        description: Install a homemade electronic bypass.
-        conditions:
-          requires: electronic_components
-        probabilities:
-          electronic_bypass: 0.8
-          door_alarm: 0.2
-          
-  partial_bypass:
-    description: You've bypassed the electronic lock, but the mechanical lock still needs a key.
-    actions:
-      pick_mechanical_lock:
-        description: Try to pick the remaining mechanical lock.
-        conditions:
-          requires: lockpick
-        probabilities:
-          door_unlocked: 0.7
-          lockpick_breaks: 0.3
-      wait_for_guard:
-        description: Hide nearby and wait for a guard with keys.
-        probabilities:
-          guard_approaches: 0.6
-          caught_by_guard: 0.4
-          
-  electronic_bypass:
-    description: Your bypass device successfully disables the electronic security.
-    actions:
-      deal_with_mechanical_lock:
-        description: Now you need to handle the mechanical lock.
-        conditions:
-          requires: keys
-        probabilities:
-          door_unlocked: 0.9
-          key_breaks: 0.1
-      create_distraction:
-        description: Set up a distraction to draw guards with keys.
-        probabilities:
-          guard_approaches: 0.7
-          caught_by_guard: 0.3
-          
-  door_unlocked:
-    description: You've successfully unlocked the security door! Freedom is getting closer.
-    actions:
-      proceed_carefully:
-        description: Move through the door cautiously.
-        probabilities:
-          secure_corridor: 0.8
-          caught_by_guard: 0.2
-      run_through:
-        description: Rush through quickly before anyone notices.
-        probabilities:
-          secure_corridor: 0.6
-          caught_by_guard: 0.4
-          
-  secure_corridor:
-    description: You're in a restricted corridor used only by high-level prison staff.
-    actions:
-      move_towards_exit:
-        description: Proceed toward what looks like an exit.
-        probabilities:
-          staff_exit: 0.7
-          caught_by_guard: 0.3
-      search_for_supplies:
-        description: Look for useful items in this restricted area.
-        probabilities:
-          find_guard_equipment: 0.5
-          caught_by_guard: 0.5
-          
-  staff_exit:
-    description: You've reached a staff-only exit that leads outside the prison walls.
-    actions:
-      check_for_guards:
-        description: Carefully check if guards are watching the exit.
-        probabilities:
-          exit_guarded: 0.6
-          exit_clear: 0.4
-      examine_exit_security:
-        description: Study the security measures on this exit.
-        probabilities:
-          identify_exit_security: 0.9
-          caught_by_guard: 0.1
-          
-  identify_exit_security:
-    description: The exit has an alarm that will trigger unless properly deactivated.
-    actions:
-      look_for_alarm_panel:
-        description: Search for the alarm control panel.
-        probabilities:
-          find_alarm_panel: 0.7
-          caught_by_guard: 0.3
-      wait_for_staff:
-        description: Hide and wait for staff to use the exit.
-        probabilities:
-          staff_arrives: 0.5
-          caught_by_guard: 0.5
-          
-  find_alarm_panel:
-    description: You locate the alarm control panel next to the exit door.
-    actions:
-      disable_alarm:
-        description: Try to disable the alarm system.
-        conditions:
-          requires: electronic_components
-        probabilities:
-          alarm_disabled: 0.7
-          door_alarm: 0.3
-      smash_panel:
-        description: Try to destroy the panel.
-        probabilities:
-          door_alarm: 0.9
-          panel_damaged: 0.1
-          
-  alarm_disabled:
-    description: You've successfully disabled the alarm system on the exit.
-    actions:
-      open_exit_door:
-        description: Try to open the exit door.
-        conditions:
-          requires: keys
-        probabilities:
-          final_obstacle: 0.8
-          door_jammed: 0.2
-      wait_for_opportunity:
-        description: Wait for someone to open the door from outside.
-        probabilities:
-          door_opens: 0.4
-          caught_by_guard: 0.6
-          
-  final_obstacle:
-    description: The door is open, but there's a guard booth outside with a clear view of the exit.
-    actions:
-      create_final_distraction:
-        description: Set up one last distraction to draw the guard away.
-        conditions:
-          requires: matches
-        probabilities:
-          guard_distracted: 0.8
-          caught_at_last_moment: 0.2
-      use_disguise:
-        description: Try to walk out disguised as prison staff.
-        conditions:
-          requires: guard_uniform
-        probabilities:
-          escape_success: 0.7
-          caught_at_last_moment: 0.3
-      wait_for_shift_change:
-        description: Wait for the guards to change shifts.
-        conditions:
-          requires: watch
-        probabilities:
-          timing_perfect: 0.8
-          caught_at_last_moment: 0.2
-          
-  guard_distracted:
-    description: The guard leaves his post to investigate your distraction!
-    actions:
-      make_final_dash:
-        description: Run for freedom while the guard is away.
-        probabilities:
-          escape_success: 0.9
-          caught_at_last_moment: 0.1
-          
-  timing_perfect:
-    description: You've timed your escape perfectly during the guard shift change.
-    actions:
-      slip_away:
-        description: Quietly slip away during the confusion.
-        probabilities:
-          escape_success: 0.9
-          caught_at_last_moment: 0.1
-          
-  find_electronic_components:
-    description: You've discovered some electronic components that could be useful.
-    actions:
-      take_components:
-        description: Carefully collect the electronic parts.
-        grants: electronic_components
-        next_state: prison_cell
-      craft_device_now:
-        description: Try to assemble something useful immediately.
-        conditions:
-          requires: crafting_materials
-        probabilities:
-          create_jammer: 0.6
-          components_damaged: 0.4
-          
-  create_jammer:
-    description: You've created a crude electronic device that can jam security systems.
-    actions:
-      keep_jammer:
-        description: Hide the jammer for later use.
-        grants: electronic_jammer
-        next_state: prison_cell
-      use_immediately:
-        description: Try to use the jammer right away.
-        probabilities:
-          cameras_disabled: 0.7
-          jammer_fails: 0.3
-          
-  find_guard_equipment:
-    description: You've found a storage locker with guard equipment.
-    actions:
-      take_uniform:
-        description: Steal a guard uniform.
-        probabilities:
-          obtain_uniform: 0.6
-          caught_stealing: 0.4
-      take_keycard:
-        description: Try to steal an electronic keycard.
-        probabilities:
-          obtain_keycard: 0.5
-          caught_stealing: 0.5
-      take_radio:
-        description: Grab a guard radio for monitoring communications.
-        probabilities:
-          obtain_radio: 0.7
-          caught_stealing: 0.3
-          
-  obtain_uniform:
-    description: You now have a guard uniform that could help you blend in.
-    actions:
-      wear_uniform:
-        description: Put on the uniform immediately.
-        probabilities:
-          disguise_working: 0.7
-          uniform_wrong_size: 0.3
-      hide_uniform:
-        description: Hide the uniform for later use.
-        grants: guard_uniform
-        next_state: prison_cell
-          
-  obtain_keycard:
-    description: You've acquired a guard's electronic keycard.
-    actions:
-      use_immediately:
-        description: Try to use the keycard right away.
-        probabilities:
-          access_granted: 0.6
-          keycard_malfunction: 0.4
-      keep_keycard:
-        description: Save the keycard for later.
-        grants: electronic_keycard
-        next_state: prison_cell
-          
-  obtain_radio:
-    description: You now have a guard radio and can listen to their communications.
-    actions:
-      monitor_communications:
-        description: Listen to guard chatter for useful information.
-        probabilities:
-          learn_guard_plans: 0.8
-          radio_discovered: 0.2
-      keep_radio:
-        description: Hide the radio for later use.
-        grants: guard_radio
-        next_state: prison_cell
